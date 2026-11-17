@@ -6,156 +6,260 @@
 <title>Whiteboard · 本地离线版</title>
 <style>
   :root{
-    --bg:#101214; --panel:#1c2024; --panel2:#23282d; --line:#31373d;
-    --fg:#e8ebee; --dim:#98a1aa; --accent:#4c9aff; --danger:#ff6b6b;
-    --shadow:0 10px 30px rgba(0,0,0,.45);
+    --bg:#E4E4E4; --fg:#232323; --dim:#707070; --dim2:#8A8A8A;
+    --line:#E1E1E1; --hover:#F2F2F2; --active:#E6E6E6; --brand:#0C35FB;
+    --shadow:0 2px 4px rgba(0,0,0,.14),0 0 2px rgba(0,0,0,.12);
+    --shadow-lg:0 8px 16px rgba(0,0,0,.14),0 0 2px rgba(0,0,0,.12);
   }
   *{box-sizing:border-box}
-  html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--fg);
-    font:13px/1.45 "Segoe UI Variable Text","Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+  html,body{height:100%;margin:0;overflow:hidden;background:#fff;color:var(--fg);
+    font:14px/1.4 "Segoe UI Variable Text","Segoe UI","Microsoft YaHei",system-ui,sans-serif;
     -webkit-user-select:none;user-select:none;overscroll-behavior:none}
-  #stage{position:fixed;inset:0;touch-action:none;cursor:crosshair}
+  body.gal{background:var(--bg)}
+  .hide{display:none!important}
+  button{appearance:none;border:0;background:transparent;color:inherit;font:inherit;
+    cursor:pointer;display:grid;place-items:center;padding:0;position:relative}
+  svg{display:block;pointer-events:none}
+
+  /* ---------- 画廊 ---------- */
+  #gallery{position:fixed;inset:0;background:var(--bg);overflow:auto;z-index:5}
+  #gallery.hide{display:none}
+  .gal-top{position:sticky;top:0;height:56px;display:flex;justify-content:flex-end;align-items:center;
+    gap:2px;padding:0 12px;background:var(--bg);z-index:2}
+  .gbtn{width:38px;height:38px;border-radius:4px;color:#424242}
+  .gbtn:hover{background:rgba(0,0,0,.06)}
+  .gal-wrap{padding:0 0 80px}
+  .gal-grid{width:726px;margin:0 auto;display:grid;grid-template-columns:repeat(3,226px);gap:24px}
+  .card{position:relative;width:226px;height:180px;background:#fff;border-radius:8px;overflow:hidden;
+    cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.03),0 1px 2px rgba(0,0,0,.10);
+    transition:box-shadow .16s}
+  .card:hover{box-shadow:0 0 0 1px rgba(0,0,0,.05),0 6px 14px rgba(0,0,0,.16)}
+  .card .thumb{height:120px;background:#fff center/contain no-repeat;border-bottom:1px solid #F0F0F0}
+  .card .meta{position:absolute;left:0;right:0;bottom:0;height:60px;background:#fff;padding:8px 12px}
+  .card .meta b{display:block;font-size:14px;font-weight:600;color:#232323;line-height:1.35;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:24px}
+  .card .meta span{font-size:12px;color:var(--dim2)}
+  .card .dots{position:absolute;right:4px;bottom:8px;width:28px;height:28px;border-radius:4px;color:#616161}
+  .card .dots:hover{background:var(--hover)}
+  .card.new{background:var(--brand);box-shadow:none}
+  .card.new:hover{background:#0A2FE4}
+  .card.new .plus{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);
+    width:44px;height:44px;border-radius:50%;background:#fff;color:var(--brand);display:grid;place-items:center}
+  .card.new b{position:absolute;left:0;right:0;top:114px;text-align:center;color:#fff;font-size:14px;font-weight:600}
+
+  /* ---------- 画布 ---------- */
+  #board{position:fixed;inset:0}
+  #stage{position:fixed;inset:0;touch-action:none;cursor:crosshair;background:#fff}
   #stage.pan{cursor:grab}
   #stage.panning{cursor:grabbing}
-
-  .bar{position:fixed;display:flex;align-items:center;gap:6px;padding:7px 9px;
-    background:rgba(28,32,36,.92);border:1px solid var(--line);border-radius:14px;
-    box-shadow:var(--shadow);backdrop-filter:blur(14px);z-index:10}
-  #top{top:14px;left:50%;transform:translateX(-50%);width:max-content;
-    max-width:calc(100vw - 28px);flex-wrap:wrap;justify-content:center}
-  #side{left:14px;top:50%;transform:translateY(-50%);flex-direction:column;width:max-content}
-  #bottom{bottom:14px;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 28px)}
-
-  button{appearance:none;border:0;background:transparent;color:var(--fg);width:34px;height:34px;
-    border-radius:10px;display:grid;place-items:center;cursor:pointer;transition:background .12s,color .12s;position:relative}
-  button:hover{background:var(--panel2)}
-  button.on{background:var(--accent);color:#fff}
-  button:active{transform:translateY(1px)}
-  button svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;
-    stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
-  button.danger:hover{background:#3a2224;color:var(--danger)}
-  .sep{width:1px;height:22px;background:var(--line);margin:0 3px}
-  .sep.h{width:22px;height:1px;margin:3px 0}
-
-  .sw{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;
-    box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);transition:transform .1s}
-  .sw:hover{transform:scale(1.12)}
-  .sw.on{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
-  .sw input{opacity:0;width:100%;height:100%;cursor:pointer;display:block}
-  #custom{background:conic-gradient(#f66,#fd6,#6f6,#6ff,#66f,#f6f,#f66);position:relative;overflow:hidden}
-
-  input[type=range]{-webkit-appearance:none;width:96px;height:22px;background:transparent;cursor:pointer}
-  input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:#3b434c}
-  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;
-    background:#fff;margin-top:-4.5px;box-shadow:0 1px 4px rgba(0,0,0,.6)}
-
-  .pill{display:flex;align-items:center;gap:8px;padding:0 10px;height:34px;border-radius:10px;
-    color:var(--dim);font-variant-numeric:tabular-nums;font-size:12px;white-space:nowrap}
-  .pill b{color:var(--fg);font-weight:600}
-
-  #hint{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);color:var(--dim);
-    font-size:12px;background:rgba(28,32,36,.9);border:1px solid var(--line);padding:6px 12px;
-    border-radius:9px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9;white-space:nowrap}
-  #hint.show{opacity:1}
-
-  #toast{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.96);z-index:50;
-    background:rgba(28,32,36,.96);border:1px solid var(--line);border-radius:12px;padding:10px 16px;
-    box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s}
-  #toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
-
-  #pages{display:flex;align-items:center;gap:6px}
-  .pdot{min-width:30px;height:30px;border-radius:8px;background:var(--panel2);color:var(--dim);
-    display:grid;place-items:center;font-size:12px;cursor:pointer;border:1px solid transparent}
-  .pdot.on{background:var(--accent);color:#fff;font-weight:600}
-  .pdot:hover{border-color:var(--line)}
-
-  #help{position:fixed;inset:0;z-index:60;display:none;place-items:center;background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
-  #help.show{display:grid}
-  #help .card{width:min(520px,92vw);background:var(--panel);border:1px solid var(--line);border-radius:16px;
-    padding:22px 24px;box-shadow:var(--shadow)}
-  #help h2{margin:0 0 12px;font-size:16px}
-  #help table{width:100%;border-collapse:collapse;font-size:12.5px}
-  #help td{padding:5px 0;color:var(--dim);vertical-align:top}
-  #help td:first-child{color:var(--fg);width:44%;font-family:ui-monospace,Consolas,monospace;font-size:12px}
-  #help .x{margin-top:16px;text-align:right}
-  #help .x button{width:auto;padding:0 14px;height:32px;background:var(--accent);color:#fff;font-weight:600}
-
-  /* ---- 对象层：文本编辑框 / 右键菜单 / 形状面板 ---- */
-  #tedit{position:fixed;display:none;z-index:40;margin:0;background:rgba(0,0,0,.12);color:var(--fg);
-    border:1.5px solid var(--accent);border-radius:7px;padding:2px 4px;resize:none;overflow:hidden;
-    font-family:inherit;line-height:1.35;-webkit-user-select:text;user-select:text;outline:none;
-    box-shadow:0 4px 18px rgba(0,0,0,.35)}
-  #ctxmenu{position:fixed;display:none;z-index:45;min-width:158px;padding:5px;
-    background:rgba(28,32,36,.98);border:1px solid var(--line);border-radius:11px;
-    box-shadow:var(--shadow);backdrop-filter:blur(12px)}
-  #ctxmenu.show{display:block}
-  #ctxmenu div{padding:7px 10px;border-radius:7px;cursor:pointer;font-size:12.5px;white-space:nowrap}
-  #ctxmenu div:hover{background:var(--panel2)}
-  #ctxmenu div.danger{color:var(--danger)}
-  #ctxmenu hr{border:0;border-top:1px solid var(--line);margin:4px 2px}
-  #shapeMenu{position:fixed;display:none;z-index:45;padding:6px;gap:4px;
-    background:rgba(28,32,36,.98);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
-  #shapeMenu.show{display:grid;grid-template-columns:repeat(3,34px)}
-  #shapeMenu button.on{background:var(--accent);color:#fff}
-  #notes{display:flex;gap:5px;align-items:center;padding:0 2px}
-  .nsw{width:20px;height:20px;border-radius:5px;cursor:pointer;border:2px solid transparent;
-    box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
-  .nsw.on{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
   #stage.sel{cursor:default}
   #stage.txt{cursor:text}
-  #hlBadge{position:absolute;right:1px;bottom:0;font-size:9px;color:var(--dim);pointer-events:none}
+
+  /* ---------- 顶栏 ---------- */
+  #topbar{position:fixed;left:0;right:0;top:0;height:46px;background:#fff;border-bottom:1px solid #EFEFEF;
+    display:flex;align-items:center;gap:2px;padding:0 8px;z-index:20}
+  .tb{position:relative;width:32px;height:32px;border-radius:4px;color:#242424}
+  .tb:hover{background:var(--hover)}
+  .tb:active{background:var(--active)}
+  .tb.on{background:var(--active)}
+  .tb-title{display:flex;align-items:center;margin-left:2px;border-radius:4px;max-width:400px}
+  .tb-title:hover{background:var(--hover)}
+  #titleText{border:0;background:transparent;font:600 15px/1.2 inherit;color:#242424;
+    padding:5px 2px 5px 6px;outline:none;border-radius:4px;min-width:40px;max-width:330px;
+    width:96px;text-overflow:ellipsis}
+  #titleText:focus{background:#fff;box-shadow:0 0 0 1px #BDBDBD}
+  #titleChev{width:20px;height:26px;color:#424242}
+  .tb-right{margin-left:auto;display:flex;align-items:center;gap:4px}
+  .vdiv{width:1px;height:18px;background:#E6E6E6;margin:0 8px;flex:none}
+  .tbtn{height:32px;display:flex;align-items:center;gap:6px;padding:0 12px;border:1px solid #E1E1E1;
+    border-radius:4px;font-size:14px;color:#242424;background:#fff}
+  .tbtn:hover{background:#F5F5F5}
+  .tbtn:active{background:#EDEDED}
+
+  /* ---------- 底部工具栏 ---------- */
+  .card-ui{display:flex;align-items:center;gap:2px;padding:4px;background:#fff;border-radius:8px;
+    box-shadow:var(--shadow)}
+  #dock{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:center;
+    gap:4px;z-index:22}
+  #toolbar .tb,#undoCard .tb{width:34px;height:34px;border-radius:6px}
+  .vsep{width:1px;height:20px;background:#E1E1E1;margin:0 4px;flex:none}
+  .cdot{position:absolute;left:50%;bottom:3px;width:4px;height:4px;border-radius:50%;
+    transform:translateX(-50%);background:#000;box-shadow:0 0 0 1px rgba(0,0,0,.06)}
+  .rdot{position:absolute;right:6px;top:5px;width:6px;height:6px;border-radius:50%;background:#E8283C}
+
+  /* ---------- 笔盘 ---------- */
+  #penTray{position:fixed;left:50%;bottom:64px;transform:translateX(-50%) translateY(4px);
+    display:flex;align-items:center;gap:0;padding:4px 6px;background:#fff;border-radius:10px;
+    box-shadow:var(--shadow-lg);z-index:23;opacity:0;pointer-events:none;
+    transition:opacity .12s,transform .12s}
+  #penTray.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+  .pen{position:relative;width:38px;height:38px;border-radius:6px;display:grid;place-items:center}
+  .pen:hover{background:var(--hover)}
+  .pen.on{background:#E9E9E9}
+  .pen .ring{width:22px;height:22px;border-radius:50%;display:block;
+    background:conic-gradient(#F44,#FA3,#4C4,#4CF,#44F,#C4F,#F44);box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+  .pen.custom input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
+  /* ---------- 缩放 / 页码 ---------- */
+  #zoomDock{position:fixed;right:16px;bottom:16px;display:flex;align-items:center;gap:4px;z-index:22}
+  #zoomCtl .tb{width:30px;height:30px;border-radius:6px;color:#424242}
+  #fitCtl .tb{width:30px;height:30px;border-radius:6px;color:#424242}
+  #zBtn{height:30px;min-width:54px;font-size:13px;color:#242424;border-radius:4px;font-variant-numeric:tabular-nums}
+  #zBtn:hover{background:var(--hover)}
+  #pageCtl{position:fixed;left:16px;bottom:16px;display:flex;align-items:center;gap:2px;padding:2px;
+    background:#fff;border-radius:8px;box-shadow:var(--shadow);z-index:22}
+  #pageCtl .tb{width:28px;height:28px;border-radius:4px;color:#424242}
+  #pages{display:flex;align-items:center;gap:2px;padding:0 2px}
+  .pdot{min-width:26px;height:26px;border-radius:4px;font-size:12px;color:#616161;
+    display:grid;place-items:center;cursor:pointer;padding:0 6px}
+  .pdot:hover{background:var(--hover)}
+  .pdot.on{background:var(--brand);color:#fff;font-weight:600}
+
+  /* ---------- 菜单 ---------- */
+  .menu{position:fixed;display:none;z-index:45;min-width:190px;padding:4px;background:#fff;
+    border-radius:8px;box-shadow:var(--shadow-lg);border:1px solid rgba(0,0,0,.05)}
+  .menu.show{display:block}
+  .menu .item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:4px;
+    font-size:14px;color:#242424;cursor:pointer;white-space:nowrap}
+  .menu .item:hover{background:var(--hover)}
+  .menu .item svg{color:#424242;flex:none}
+  .menu .kbd{margin-left:auto;font-size:12px;color:var(--dim2);padding-left:18px}
+  .menu hr{border:0;border-top:1px solid #EDEDED;margin:4px 6px}
+  #emojiMenu{min-width:0;padding:6px;display:none;grid-template-columns:repeat(4,38px);gap:2px}
+  #emojiMenu.show{display:grid}
+  .emo{width:38px;height:38px;border-radius:4px;font-size:20px;line-height:1}
+  .emo:hover{background:var(--hover)}
+
+  /* ---------- 提示 / 弹窗 ---------- */
+  #hint{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);font-size:12px;color:#fff;
+    background:#3B3B3B;padding:6px 12px;border-radius:4px;opacity:0;transition:opacity .2s;
+    pointer-events:none;z-index:30;white-space:nowrap}
+  #hint.show{opacity:1}
+  #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:50;background:#3B3B3B;
+    color:#fff;border-radius:4px;padding:8px 14px;font-size:13px;opacity:0;pointer-events:none;
+    transition:opacity .18s;white-space:nowrap}
+  #toast.show{opacity:1}
+  #timerBadge{position:fixed;right:24px;top:58px;z-index:21;background:#fff;border-radius:4px;
+    padding:6px 12px;font-size:15px;font-weight:600;color:#242424;box-shadow:var(--shadow);
+    font-variant-numeric:tabular-nums}
+  .modal{position:fixed;inset:0;z-index:70;display:grid;place-items:center;background:rgba(0,0,0,.28)}
+  .modal .box{width:min(360px,90vw);background:#fff;border-radius:8px;padding:20px;
+    box-shadow:var(--shadow-lg)}
+  .modal p{margin:0 0 18px;font-size:14px;line-height:1.5;color:#242424}
+  .modal .row{display:flex;justify-content:flex-end;gap:8px}
+  .modal button{height:32px;padding:0 16px;border-radius:4px;font-size:14px}
+  .modal .ghost{border:1px solid #D1D1D1;background:#fff;color:#242424}
+  .modal .ghost:hover{background:#F5F5F5}
+  .modal .pri{background:var(--brand);color:#fff;font-weight:600}
+  .modal .pri:hover{background:#0A2FE4}
+
+  /* ---------- 文本编辑 / 右键菜单 / 形状 ---------- */
+  #tedit{position:fixed;display:none;z-index:40;margin:0;background:transparent;color:#232323;
+    border:1.5px solid var(--brand);border-radius:4px;padding:2px 4px;resize:none;overflow:hidden;
+    font-family:inherit;line-height:1.35;-webkit-user-select:text;user-select:text;outline:none}
+  #ctxmenu{position:fixed;display:none;z-index:45;min-width:160px;padding:4px;background:#fff;
+    border-radius:8px;box-shadow:var(--shadow-lg);border:1px solid rgba(0,0,0,.05)}
+  #ctxmenu.show{display:block}
+  #ctxmenu div{padding:8px 10px;border-radius:4px;cursor:pointer;font-size:14px;white-space:nowrap;color:#242424}
+  #ctxmenu div:hover{background:var(--hover)}
+  #ctxmenu div.danger{color:#C50F1F}
+  #ctxmenu hr{border:0;border-top:1px solid #EDEDED;margin:4px 6px}
+  #shapeMenu{position:fixed;display:none;z-index:45;padding:5px;gap:2px;background:#fff;
+    border-radius:8px;box-shadow:var(--shadow-lg);border:1px solid rgba(0,0,0,.05)}
+  #shapeMenu.show{display:grid;grid-template-columns:repeat(3,34px)}
+  #shapeMenu button{width:34px;height:34px;border-radius:4px;color:#242424}
+  #shapeMenu button:hover{background:var(--hover)}
+  #shapeMenu button.on{background:var(--active)}
+  #shapeMenu svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6}
+
+  /* ---------- 帮助 ---------- */
+  #help{position:fixed;inset:0;z-index:60;display:none;place-items:center;background:rgba(0,0,0,.28)}
+  #help.show{display:grid}
+  #help .hbox{width:min(560px,92vw);background:#fff;border-radius:8px;padding:22px 24px;
+    box-shadow:var(--shadow-lg);height:auto}
+  #help h2{margin:0 0 12px;font-size:16px;font-weight:600}
+  #help table{width:100%;border-collapse:collapse;font-size:13px}
+  #help td{padding:5px 0;color:var(--dim);vertical-align:top}
+  #help td:first-child{color:#242424;width:46%;font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+  #help .x{margin-top:16px;text-align:right}
+  #help .x button{width:auto;padding:0 16px;height:32px;background:var(--brand);color:#fff;
+    font-weight:600;border-radius:4px}
+
+  /* ---------- 旧控件容器 ---------- */
+  #legacy{display:none}
+  #hlBadge{display:none}
+  #custom{background:conic-gradient(#f66,#fd6,#6f6,#6ff,#66f,#f6f,#f66)}
 </style>
 </head>
 <body>
-<canvas id="stage"></canvas>
-
-<div class="bar" id="top">
-  <button id="tPen" class="on" title="笔 (1)"><svg viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="M14.5 5.5 18 9"/></svg></button>
-  <button id="tHl" title="荧光笔 (2)"><svg viewBox="0 0 24 24"><path d="M5 16l6-6 4 4-6 6H5z"/><path d="M11 10l4-4 4 4-4 4"/><path d="M3 21h8"/></svg></button>
-  <button id="tEr" title="整笔橡皮 (3)：碰到就整条删掉"><svg viewBox="0 0 24 24"><path d="M8 20H4l-1-4 11-11 6 6-6 6h-6z"/><path d="M10 10l6 6"/></svg></button>
-  <button id="tEr2" title="局部橡皮 (4)：只擦掉划过的部分，笔迹会被切断"><svg viewBox="0 0 24 24"><path d="M8 20H4l-1-4 11-11 6 6-6 6h-6z"/><path d="M10 10l6 6"/><path d="M3 3l4 4M7 3l-4 4"/></svg></button>
-  <div class="sep"></div>
-  <button id="tSel" title="选择 (V)：拖动移动，拉框多选，Shift 加选"><svg viewBox="0 0 24 24"><path d="M5 3l13.5 7.6-5.7 1.5L10 19z"/></svg></button>
-  <button id="tLasso" title="套索 (L)：圈住即选中"><svg viewBox="0 0 24 24"><path d="M12 4.5c4.4 0 8 2.6 8 5.8 0 2.6-2.2 4.8-5.4 5.6"/><path d="M12 4.5c-4.4 0-8 2.6-8 5.8 0 2.1 1.4 3.9 3.6 4.9"/><path d="M7.6 15.2c0 1.7-1.2 2.8-2.6 2.8"/></svg></button>
-  <div class="sep"></div>
-  <button id="tText" title="文本 (T)：点一下输入，双击已有文本可改"><svg viewBox="0 0 24 24"><path d="M5 5h14M12 5v14M9 19h6"/></svg></button>
-  <button id="tNote" title="便签 (N)：再点一次换颜色"><svg viewBox="0 0 24 24"><path d="M5 5h14v10l-4 4H5z"/><path d="M15 19v-4h4"/></svg></button>
-  <button id="tShape" title="形状 (S)：长按或右键选形状"><svg viewBox="0 0 24 24"><circle cx="8" cy="9" r="3.4"/><rect x="12.5" y="11.5" width="8" height="7.5" rx="1.4"/></svg></button>
-  <button id="tTable" title="表格 (B)"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11M15 9v11"/></svg></button>
-  <button id="tImg" title="图片对象 (I)：可移动、缩放、旋转"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="15" height="13" rx="2"/><circle cx="8" cy="11" r="1.5"/><path d="M18 15l-4-4-5 5"/><path d="M18 3v5M15.5 5.5h5"/></svg></button>
-  <div class="sep"></div>
-  <span id="colors" style="display:flex;gap:5px;align-items:center"></span>
-  <div class="sep"></div>
-  <input id="size" type="range" min="1" max="26" step="0.5" value="3" title="笔宽"><b id="wLbl" style="min-width:16px;text-align:right;color:var(--dim);font-size:11px">3</b>
-  <div class="sep"></div>
-  <button id="bUndo" title="撤销 (Ctrl+Z)"><svg viewBox="0 0 24 24"><path d="M9 7H5v4"/><path d="M5 11a8 8 0 1 1 2.3 5.7"/></svg></button>
-  <button id="bRedo" title="重做 (Ctrl+Y)"><svg viewBox="0 0 24 24"><path d="M15 7h4v4"/><path d="M19 11a8 8 0 1 0-2.3 5.7"/></svg></button>
-  <div class="sep"></div>
-  <button id="bBg" title="纸张底色"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v16"/></svg></button>
-  <button id="bImg" title="导入图片当底图（可描旧白板缩略图）"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M21 16l-5-5-6 6"/></svg></button>
-  <button id="bSave" title="导出当前页 PNG (Ctrl+S)"><svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M8 11l4 4 4-4"/><path d="M4 19h16"/></svg></button>
-  <button id="bJson" title="导出/备份全部页面 JSON"><svg viewBox="0 0 24 24"><path d="M8 4H6a2 2 0 0 0-2 2v4l-2 2 2 2v4a2 2 0 0 0 2 2h2"/><path d="M16 4h2a2 2 0 0 1 2 2v4l2 2-2 2v4a2 2 0 0 1-2 2h-2"/></svg></button>
-  <button id="bHelp" title="快捷键 (?)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.2 1-1.2 1.9"/><path d="M12 17h.01"/></svg></button>
+<div id="gallery">
+  <div class="gal-top">
+    <button class="gbtn" id="gUser" title="账户"></button>
+    <button class="gbtn" id="gSettings" title="设置"></button>
+  </div>
+  <div class="gal-wrap"><div class="gal-grid" id="gGrid"></div></div>
 </div>
 
-<div class="bar" id="side">
-  <button id="bNew" title="新建白板"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
-  <div class="sep h"></div>
-  <button id="bZoomIn" title="放大 (Ctrl+滚轮)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5M8 11h6M11 8v6"/></svg></button>
-  <button id="bZoomOut" title="缩小"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5M8 11h6"/></svg></button>
-  <button id="bFit" title="回到原点 (0)"><svg viewBox="0 0 24 24"><path d="M4 9V5h4M20 9V5h-4M4 15v4h4M20 15v4h-4"/></svg></button>
-  <div class="sep h"></div>
-  <button id="bPan" title="抓手 (H / 空格拖动)"><svg viewBox="0 0 24 24"><path d="M8 11V6.5a1.5 1.5 0 0 1 3 0V11m0-.5V5.5a1.5 1.5 0 0 1 3 0V11m0-.5V7a1.5 1.5 0 0 1 3 0v6.5A6.5 6.5 0 0 1 10.5 20H9a5 5 0 0 1-4.4-2.6L3 14.5a1.6 1.6 0 0 1 2.7-1.7L8 15"/></svg></button>
-  <div class="sep h"></div>
-  <button id="bReplay" title="回放本页书写过程"><svg viewBox="0 0 24 24"><path d="M6 5l13 7-13 7z"/></svg></button>
-</div>
+<div id="board" class="hide">
+  <canvas id="stage"></canvas>
 
-<div class="bar" id="bottom">
-  <div id="pages"></div>
-  <button id="bAddPage" title="加一页"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></button>
-  <button id="bDelPage" class="danger" title="删除当前页"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
-  <div class="sep"></div>
-  <div class="pill"><b id="zLbl">100%</b></div>
+  <header id="topbar">
+    <button class="tb" id="bHome" title="主页"></button>
+    <div class="vdiv"></div>
+    <div class="tb-title">
+      <input id="titleText" value="无标题的白板" spellcheck="false" autocomplete="off">
+      <button id="titleChev" title="白板菜单"></button>
+    </div>
+    <div class="tb-right">
+      <button class="tb" id="bTimer" title="计时器"></button>
+      <div class="vdiv"></div>
+      <button class="tbtn" id="bShare"></button>
+      <button class="tb" id="bSettings" title="设置"></button>
+    </div>
+  </header>
+
+  <div id="dock">
+    <div id="undoCard" class="card-ui">
+      <button class="tb" id="bUndo" title="撤销 (Ctrl+Z)"></button>
+      <button class="tb" id="bRedo" title="重做 (Ctrl+Y)" style="display:none"></button>
+    </div>
+    <div id="toolbar" class="card-ui">
+      <button class="tb" id="tSel" title="选择 (V)"></button>
+      <button class="tb" id="tEr" title="橡皮 (3)"></button>
+      <button class="tb" id="tPen" title="笔 (1)"></button>
+      <button class="tb" id="tNote" title="便签 (N)"></button>
+      <button class="tb" id="tHeart" title="表情"></button>
+      <button class="tb" id="tText" title="文本 (T)"></button>
+      <button class="tb" id="tShape" title="形状 (S)"></button>
+      <button class="tb" id="tTable" title="表格 (B)"></button>
+      <button class="tb" id="bMore" title="更多"></button>
+    </div>
+  </div>
+
+  <div id="penTray"></div>
+
+  <div id="zoomDock">
+    <div id="zoomCtl" class="card-ui">
+      <button class="tb" id="bZoomOut" title="缩小"></button>
+      <button id="zBtn"><b id="zLbl">100%</b></button>
+      <button class="tb" id="bZoomIn" title="放大"></button>
+    </div>
+    <div id="fitCtl" class="card-ui"><button class="tb" id="bFit" title="视图复位 (0)"></button></div>
+  </div>
+
+  <div id="pageCtl">
+    <div id="pages"></div>
+    <button class="tb" id="bAddPage" title="加一页"></button>
+    <button class="tb" id="bDelPage" title="删除当前页"></button>
+  </div>
+
+  <div id="timerBadge" class="hide"></div>
+  <div id="insMenu" class="menu"></div>
+  <div id="moreMenu" class="menu"></div>
+  <div id="boardMenu" class="menu"></div>
+  <div id="setMenu" class="menu"></div>
+  <div id="cardMenu" class="menu"></div>
+  <div id="emojiMenu" class="menu"></div>
 </div>
 
 <div id="hint"></div>
@@ -171,7 +275,7 @@
   <button data-s="arrow" title="箭头（端点吸附到对象边缘）"><svg viewBox="0 0 24 24"><path d="M4 19L19 6"/><path d="M12 6h7v7"/></svg></button>
 </div>
 
-<div id="help"><div class="card">
+<div id="help"><div class="hbox">
   <h2>快捷键</h2>
   <table>
     <tr><td>1 / 2</td><td>笔 / 荧光笔（再点荧光笔切三档粗细）</td></tr>
@@ -190,9 +294,28 @@
     <tr><td>Ctrl + S</td><td>导出当前页 PNG</td></tr>
     <tr><td>0</td><td>视图复位 100%</td></tr>
   </table>
-  <p style="color:var(--dim);font-size:12px;margin:12px 0 0">数据全部存在本机浏览器 IndexedDB 里，不联网、不上传。清浏览器数据会一起清掉，重要内容请用「JSON」按钮备份。</p>
+  <p style="color:#707070;font-size:12px;margin:12px 0 0">数据全部存在本机浏览器 IndexedDB 里，不联网、不上传。清浏览器数据会一起清掉，重要内容请用「备份 JSON」。</p>
   <div class="x"><button id="bHelpClose">知道了</button></div>
 </div></div>
+
+<div id="legacy">
+  <button id="tHl"></button>
+  <button id="tEr2"></button>
+  <button id="tLasso"></button>
+  <button id="tImg"></button>
+  <button id="bPan"></button>
+  <button id="bReplay"></button>
+  <button id="bBg"></button>
+  <button id="bImg"></button>
+  <button id="bSave"></button>
+  <button id="bJson"></button>
+  <button id="bHelp"></button>
+  <button id="bNew"></button>
+  <span id="colors"></span>
+  <input id="size" type="range" min="1" max="26" step="0.5" value="3">
+  <b id="wLbl">3</b>
+  <b id="hlBadge"></b>
+</div>
 
 <input type="file" id="fileImg" accept="image/*" hidden>
 <input type="file" id="fileJson" accept="application/json,.json" hidden>
@@ -216,9 +339,9 @@
   // ---------- 状态 ----------
   var doc = { version: 2, pages: [{ id: uid(), items: [], bg: null }], active: 0, view: { x: 0, y: 0, s: 1 } };
   var tool = 'pen';
-  var color = '#ffffff';
+  var color = '#000000';
   var width = 3;
-  var paper = 'dark';           // dark | light | grid | dot
+  var paper = 'light';           // dark | light | grid | dot
   var touchDraw = false;
   var dpr = 1, W = 0, H = 0;
   var undoStack = [], redoStack = [];
@@ -608,11 +731,11 @@
     var b = boundsOf(it), rows = it.rows || 3, cols = it.cols || 3;
     var cw = b.w / cols, ch = b.h / rows, i, j;
     c.save();
-    c.fillStyle = 'rgba(255,255,255,.05)'; c.fillRect(b.x, b.y, b.w, b.h);
-    c.strokeStyle = it.c || 'rgba(255,255,255,.5)'; c.lineWidth = 1.2;
+    c.fillStyle = 'rgba(0,0,0,.02)'; c.fillRect(b.x, b.y, b.w, b.h);
+    c.strokeStyle = it.c || 'rgba(0,0,0,.22)'; c.lineWidth = 1.2;
     for (i = 0; i <= rows; i++) { c.beginPath(); c.moveTo(b.x, b.y + i * ch); c.lineTo(b.x + b.w, b.y + i * ch); c.stroke(); }
     for (j = 0; j <= cols; j++) { c.beginPath(); c.moveTo(b.x + j * cw, b.y); c.lineTo(b.x + j * cw, b.y + b.h); c.stroke(); }
-    c.fillStyle = it.tc || '#ffffff';
+    c.fillStyle = it.tc || '#111111';
     c.font = (it.size || 14) + 'px ' + FONT; c.textBaseline = 'top';
     for (i = 0; i < rows; i++) for (j = 0; j < cols; j++) {
       var t = (it.cells && it.cells[i] && it.cells[i][j]) || '';
@@ -1051,7 +1174,7 @@
   }
   function syncUndoBtns() {
     $('bUndo').style.opacity = undoStack.length ? 1 : .35;
-    $('bRedo').style.opacity = redoStack.length ? 1 : .35;
+    $('bRedo').style.display = redoStack.length ? '' : 'none';
   }
 
   // 点到线段的最短距离平方（橡皮命中判定必须按线段算，否则抽稀后的长直线中段擦不到）
@@ -1154,7 +1277,7 @@
     var rows = 3, cols = 3, cells = [];
     for (var r = 0; r < rows; r++) { cells.push([]); for (var c = 0; c < cols; c++) cells[r].push(''); }
     var it = addItem({ id: uid(), kind: 'table', x: w.x - 210, y: w.y - 80, w: 420, h: 240,
-      rows: rows, cols: cols, cells: cells, c: 'rgba(255,255,255,.5)', tc: color, size: 14, rot: 0 });
+      rows: rows, cols: cols, cells: cells, c: 'rgba(0,0,0,.22)', tc: color, size: 14, rot: 0 });
     sel = [it.id]; sceneDirty = true; schedule(); save();
   }
   function pickImage(w) { pendingImageAt = w; $('fileImg').click(); }
@@ -1179,7 +1302,7 @@
     ta.style.width = Math.max(40, w * doc.view.s) + 'px';
     ta.style.height = Math.max(20, h * doc.view.s) + 'px';
     ta.style.fontSize = (size * doc.view.s) + 'px';
-    ta.style.color = it.kind === 'note' ? '#1a1a1a' : (it.c || '#ffffff');
+    ta.style.color = it.kind === 'note' ? '#1a1a1a' : (it.c || '#111111');
     ta.value = ci ? (it.cells[ci[0]][ci[1]] || '') : (it.text || '');
     ta.focus();
     try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (err) { }
@@ -2098,19 +2221,589 @@
     }
   };
 
+var ICON={"add":"<path d=\"M10 2.5c.28 0 .5.22.5.5v6.5H17a.5.5 0 0 1 0 1h-6.5V17a.5.5 0 0 1-1 0v-6.5H3a.5.5 0 0 1 0-1h6.5V3c0-.28.22-.5.5-.5Z\"/>","arrow_down":"<path d=\"M16.87 10.84a.5.5 0 1 0-.74-.68l-5.63 6.17V2.5a.5.5 0 0 0-1 0v13.83l-5.63-6.17a.5.5 0 0 0-.74.68l6.31 6.91a.75.75 0 0 0 1.11 0l6.32-6.91Z\"/>","arrow_download":"<path d=\"M15.5 17a.5.5 0 0 1 .09 1H4.5a.5.5 0 0 1-.09-1H15.5ZM10 2a.5.5 0 0 1 .5.41V14.3l3.64-3.65a.5.5 0 0 1 .64-.06l.07.06c.17.17.2.44.06.63l-.06.07-4.5 4.5a.5.5 0 0 1-.25.14L10 16a.5.5 0 0 1-.4-.2l-4.46-4.45a.5.5 0 0 1 .64-.76l.07.06 3.65 3.64V2.5c0-.27.22-.5.5-.5Z\"/>","arrow_fit":"<path d=\"M5.35 6.65c.2.2.2.5 0 .7L3.71 9H8.5a.5.5 0 0 1 0 1H3.7l1.65 1.65a.5.5 0 0 1-.7.7l-2.5-2.5a.5.5 0 0 1 0-.7l2.5-2.5c.2-.2.5-.2.7 0Zm9.3 0c.2-.2.5-.2.7 0l2.5 2.5c.2.2.2.5 0 .7l-2.5 2.5a.5.5 0 0 1-.7-.7L16.29 10H11.5a.5.5 0 0 1 0-1h4.8l-1.65-1.65a.5.5 0 0 1 0-.7Z\"/>","arrow_maximize":"<path d=\"M15.5 4c.28 0 .5.22.5.5v6a.5.5 0 0 1-1 0V5.7L5.7 15h4.8a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5v-6a.5.5 0 0 1 1 0v4.8L14.3 5H9.5a.5.5 0 0 1 0-1h6Z\"/>","arrow_redo":"<path d=\"M15 2.5a.5.5 0 0 1 1 0v4.9a.6.6 0 0 1-.6.6h-4.9a.5.5 0 0 1 0-1h3.6l-3.48-3.02a4 4 0 1 0-5.24 6.04l8.17 7.1a.5.5 0 1 1-.66.76l-8.17-7.1a5 5 0 1 1 6.56-7.55L15 6.46V2.5Z\"/>","arrow_undo":"<path d=\"M5 2.5a.5.5 0 0 0-1 0v4.9c0 .33.27.6.6.6h4.9a.5.5 0 0 0 0-1H5.9l3.48-3.02a4 4 0 0 1 5.25 6.04l-8.17 7.1a.5.5 0 0 0 .65.76l8.17-7.1a5 5 0 0 0-6.56-7.55L5 6.46V2.5Z\"/>","arrow_up":"<path d=\"M3.13 9.16a.5.5 0 1 0 .74.68L9.5 3.67V17.5a.5.5 0 1 0 1 0V3.67l5.63 6.17a.5.5 0 0 0 .74-.68l-6.32-6.92a.75.75 0 0 0-1.1 0L3.13 9.16Z\"/>","chevron_down":"<path d=\"M15.85 7.65c.2.2.2.5 0 .7l-5.46 5.49a.55.55 0 0 1-.78 0L4.15 8.35a.5.5 0 1 1 .7-.7L10 12.8l5.15-5.16c.2-.2.5-.2.7 0Z\"/>","code":"<path d=\"M12.97 3.68a.5.5 0 0 0-.94-.36l-5 13a.5.5 0 1 0 .94.36l5-13ZM5.83 6.12c.2.18.23.5.05.7L3.16 10l2.72 3.17a.5.5 0 0 1-.76.66l-3-3.5a.5.5 0 0 1 0-.66l3-3.5a.5.5 0 0 1 .7-.05Zm8.34 8.26a.5.5 0 0 1-.05-.7l2.72-3.18-2.72-3.17a.5.5 0 1 1 .76-.66l3 3.5a.5.5 0 0 1 0 .66l-3 3.5a.5.5 0 0 1-.7.05Z\"/>","copy":"<path d=\"M8 2a2 2 0 0 0-2 2v10c0 1.1.9 2 2 2h6a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8ZM7 4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4ZM4 6a2 2 0 0 1 1-1.73V14.5A2.5 2.5 0 0 0 7.5 17h6.23A2 2 0 0 1 12 18H7.5A3.5 3.5 0 0 1 4 14.5V6Z\"/>","cursor":"<path d=\"M5 3.06a1 1 0 0 1 1.64-.77l11 9.06a1 1 0 0 1-.63 1.77h-5.6c-.43 0-.85.19-1.13.52L6.76 17.7A1 1 0 0 1 5 17.06v-14Zm12 9.06L6 3.06v14l3.52-4.08a2.5 2.5 0 0 1 1.9-.86H17Z\"/>","cursor_filled":"<path d=\"M6.64 2.29A1 1 0 0 0 5 3.06v14a1 1 0 0 0 1.76.65l3.52-4.07c.28-.33.7-.52 1.13-.52h5.6a1 1 0 0 0 .63-1.77l-11-9.06Z\"/>","delete":"<path d=\"M8.5 4h3a1.5 1.5 0 0 0-3 0Zm-1 0a2.5 2.5 0 0 1 5 0h5a.5.5 0 0 1 0 1h-1.05l-1.2 10.34A3 3 0 0 1 12.27 18H7.73a3 3 0 0 1-2.98-2.66L3.55 5H2.5a.5.5 0 0 1 0-1h5ZM5.74 15.23A2 2 0 0 0 7.73 17h4.54a2 2 0 0 0 1.99-1.77L15.44 5H4.56l1.18 10.23ZM8.5 7.5c.28 0 .5.22.5.5v6a.5.5 0 0 1-1 0V8c0-.28.22-.5.5-.5ZM12 8a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V8Z\"/>","dismiss":"<path d=\"m4.09 4.22.06-.07a.5.5 0 0 1 .63-.06l.07.06L10 9.29l5.15-5.14a.5.5 0 0 1 .63-.06l.07.06c.18.17.2.44.06.63l-.06.07L10.71 10l5.14 5.15c.18.17.2.44.06.63l-.06.07a.5.5 0 0 1-.63.06l-.07-.06L10 10.71l-5.15 5.14a.5.5 0 0 1-.63.06l-.07-.06a.5.5 0 0 1-.06-.63l.06-.07L9.29 10 4.15 4.85a.5.5 0 0 1-.06-.63l.06-.07-.06.07Z\"/>","edit":"<path d=\"M17.18 2.93a2.97 2.97 0 0 0-4.26-.06l-9.37 9.38c-.33.33-.56.74-.66 1.2l-.88 3.94a.5.5 0 0 0 .6.6l3.93-.87c.46-.1.9-.34 1.23-.68l9.36-9.36a2.97 2.97 0 0 0 .05-4.15Zm-3.55.65a1.97 1.97 0 1 1 2.8 2.8l-.68.66-2.8-2.79.68-.67Zm-1.38 1.38 2.8 2.8-7.99 7.97c-.2.2-.46.35-.74.41l-3.16.7.7-3.18c.07-.27.2-.51.4-.7l8-8Z\"/>","edit_filled":"<path d=\"M12.92 2.87a2.97 2.97 0 0 1 4.2 4.21l-.66.67-4.2-4.2.66-.68Zm-1.38 1.38-8 8c-.32.33-.55.74-.65 1.2l-.88 3.94a.5.5 0 0 0 .6.6l3.92-.87c.47-.1.9-.34 1.24-.68l7.98-7.98-4.2-4.21Z\"/>","emoji":"<path d=\"M18 10a8 8 0 1 0-16 0 8 8 0 0 0 16 0ZM3 10a7 7 0 1 1 14 0 7 7 0 0 1-14 0Zm10.5-1.5a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm-5 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm-1.61 4.01a.5.5 0 1 0-.78.63 5 5 0 0 0 7.78 0 .5.5 0 1 0-.78-.63 4 4 0 0 1-6.22 0Z\"/>","eraser":"<path d=\"M11.2 2.44a1.5 1.5 0 0 1 2.12 0l4.24 4.24a1.5 1.5 0 0 1 0 2.12L9.36 17h5.14a.5.5 0 1 1 0 1H7.82a1.5 1.5 0 0 1-1.14-.44l-4.24-4.24a1.5 1.5 0 0 1 0-2.12l8.76-8.76Zm1.41.7a.5.5 0 0 0-.7 0L5.53 9.52l4.95 4.95 6.36-6.36a.5.5 0 0 0 0-.71l-4.24-4.24ZM9.78 15.18l-4.95-4.95-1.69 1.69a.5.5 0 0 0 0 .7l4.25 4.25c.2.2.5.2.7 0l1.7-1.7Z\"/>","eraser_filled":"<path d=\"M11.2 2.44a1.5 1.5 0 0 1 2.12 0l4.24 4.24a1.5 1.5 0 0 1 0 2.12L9.36 17h5.14a.5.5 0 1 1 0 1H7.82a1.5 1.5 0 0 1-1.14-.44l-4.24-4.24a1.5 1.5 0 0 1 0-2.12l8.76-8.76ZM9.78 15.17l-4.95-4.95-1.69 1.69a.5.5 0 0 0 0 .7l4.25 4.25c.2.2.5.2.7 0l1.7-1.7Z\"/>","grid":"<path d=\"M7.5 11c.83 0 1.5.67 1.5 1.5v4c0 .83-.67 1.5-1.5 1.5h-4A1.5 1.5 0 0 1 2 16.5v-4c0-.83.67-1.5 1.5-1.5h4Zm9 0c.83 0 1.5.67 1.5 1.5v4c0 .83-.67 1.5-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5v-4c0-.83.67-1.5 1.5-1.5h4Zm-9 1h-4a.5.5 0 0 0-.5.5v4c0 .28.22.5.5.5h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-.5-.5Zm9 0h-4a.5.5 0 0 0-.5.5v4c0 .28.22.5.5.5h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-.5-.5Zm-9-10C8.33 2 9 2.67 9 3.5v4C9 8.33 8.33 9 7.5 9h-4A1.5 1.5 0 0 1 2 7.5v-4C2 2.67 2.67 2 3.5 2h4Zm9 0c.83 0 1.5.67 1.5 1.5v4c0 .83-.67 1.5-1.5 1.5h-4A1.5 1.5 0 0 1 11 7.5v-4c0-.83.67-1.5 1.5-1.5h4Zm-9 1h-4a.5.5 0 0 0-.5.5v4c0 .28.22.5.5.5h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-.5-.5Zm9 0h-4a.5.5 0 0 0-.5.5v4c0 .28.22.5.5.5h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-.5-.5Z\"/>","heart":"<path d=\"m10.5 16.8 6.24-6.3a4.4 4.4 0 0 0-.02-6.19 4.3 4.3 0 0 0-6.13-.01l-.6.6-.6-.61a4.3 4.3 0 0 0-6.13-.02 4.4 4.4 0 0 0 .02 6.2l6.27 6.33c.26.27.69.27.95 0ZM11.3 5a3.3 3.3 0 0 1 4.71.02 3.4 3.4 0 0 1 .02 4.78l-6 6.06-6.04-6.1a3.4 3.4 0 0 1-.02-4.78 3.3 3.3 0 0 1 4.7.01l.97.97c.2.2.51.2.7 0L11.3 5Z\"/>","heart_filled":"<path d=\"M9.39 4.29a4.3 4.3 0 0 0-6.13-.02 4.4 4.4 0 0 0 .02 6.2l6.27 6.33c.26.27.69.27.95 0l6.24-6.3a4.4 4.4 0 0 0-.02-6.19 4.3 4.3 0 0 0-6.13-.01l-.6.6-.6-.61Z\"/>","highlight":"<path d=\"M3.5 2c.28 0 .5.22.5.5v4c0 .28.22.5.5.5h11a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 1 0v4c0 .65-.42 1.2-1 1.41V9a2 2 0 0 1-2 2v2.07a2 2 0 0 1-1.1 1.8l-6.18 3.08A.5.5 0 0 1 6 17.5V11a2 2 0 0 1-2-2V7.91c-.58-.2-1-.76-1-1.41v-4c0-.28.22-.5.5-.5ZM5 8v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8H5Zm2 3v5.7l5.45-2.73a1 1 0 0 0 .55-.9V11H7Z\"/>","highlight_filled":"<path d=\"M4.5 2C3.67 2 3 2.67 3 3.5v3C3 7.33 3.67 8 4.5 8h11c.83 0 1.5-.67 1.5-1.5v-3c0-.83-.67-1.5-1.5-1.5h-11ZM6 11a2 2 0 0 1-2-2h12a2 2 0 0 1-2 2H6Zm0 1h8v1.07a2 2 0 0 1-1.1 1.8l-6.18 3.08A.5.5 0 0 1 6 17.5V12Z\"/>","home":"<path d=\"M9 2.39a1.5 1.5 0 0 1 2 0l5.5 4.94c.32.28.5.69.5 1.12v7.05c0 .83-.67 1.5-1.5 1.5H13a1.5 1.5 0 0 1-1.5-1.5V12a.5.5 0 0 0-.5-.5H9a.5.5 0 0 0-.5.5v3.5c0 .83-.67 1.5-1.5 1.5H4.5A1.5 1.5 0 0 1 3 15.5V8.45c0-.43.18-.84.5-1.12L9 2.39Zm1.33.74a.5.5 0 0 0-.66 0l-5.5 4.94a.5.5 0 0 0-.17.38v7.05c0 .28.22.5.5.5H7a.5.5 0 0 0 .5-.5V12c0-.83.67-1.5 1.5-1.5h2c.83 0 1.5.67 1.5 1.5v3.5c0 .28.22.5.5.5h2.5a.5.5 0 0 0 .5-.5V8.45a.5.5 0 0 0-.17-.38l-5.5-4.94Z\"/>","image":"<path d=\"M14 7.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm-1 0a.5.5 0 1 0-1 0 .5.5 0 0 0 1 0ZM3 6a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6Zm3-2a2 2 0 0 0-2 2v8c0 .37.1.72.28 1.02l4.67-4.59a1.5 1.5 0 0 1 2.1 0l4.67 4.59c.18-.3.28-.65.28-1.02V6a2 2 0 0 0-2-2H6Zm0 12h8a2 2 0 0 0 1.01-.27l-4.66-4.58a.5.5 0 0 0-.7 0l-4.66 4.58A2 2 0 0 0 6 16Z\"/>","lasso":"<path d=\"M8.16 2.21a8.02 8.02 0 0 1 3.68 0 .5.5 0 0 1-.23.98 7.02 7.02 0 0 0-3.22 0 .5.5 0 0 1-.23-.98ZM6.48 3.36a.5.5 0 0 1-.16.68 7.04 7.04 0 0 0-2.28 2.28.5.5 0 1 1-.85-.53 8.04 8.04 0 0 1 2.6-2.6.5.5 0 0 1 .7.17Zm7.04 0a.5.5 0 0 1 .69-.17 8.04 8.04 0 0 1 2.6 2.6.5.5 0 0 1-.85.53 7.04 7.04 0 0 0-2.28-2.28.5.5 0 0 1-.16-.68ZM2.82 7.79a.5.5 0 0 1 .37.6 7.02 7.02 0 0 0 0 3.22.5.5 0 0 1-.98.23 8.02 8.02 0 0 1 0-3.68.5.5 0 0 1 .6-.37Zm14.37 0a.5.5 0 0 1 .6.37 8.03 8.03 0 0 1 0 3.68.5.5 0 0 1-.98-.23 7.02 7.02 0 0 0 0-3.22.5.5 0 0 1 .38-.6ZM3.36 13.52a.5.5 0 0 1 .68.16c.58.92 1.36 1.7 2.28 2.28a.5.5 0 1 1-.53.85 8.04 8.04 0 0 1-2.6-2.6.5.5 0 0 1 .17-.7Zm13.57.73a.5.5 0 1 0-.86-.5l-.02.03a3.6 3.6 0 0 1-.32.46 7.8 7.8 0 0 1-1.16 1.22A6.55 6.55 0 0 0 10.5 14c-1.52 0-2.49.9-2.49 2s.97 2 2.49 2a7.1 7.1 0 0 0 4.03-1.26 8.6 8.6 0 0 1 1.5 1.95l.02.03a.5.5 0 1 0 .9-.44s-.13-.24 0 0l-.01-.02a3.37 3.37 0 0 0-.1-.18 9.6 9.6 0 0 0-1.49-1.93l-.02-.03a8.8 8.8 0 0 0 1.6-1.86.9.9 0 0 1 0-.01ZM10.5 15c1.3 0 2.38.46 3.23 1.07-.85.53-1.93.93-3.23.93-1.13 0-1.49-.6-1.49-1s.36-1 1.49-1Z\"/>","layer":"<path d=\"M10.5 3.12a1 1 0 0 0-1 0L3.47 6.64a1 1 0 0 0 0 1.72l6.02 3.5a1 1 0 0 0 1 0l6.01-3.5a1 1 0 0 0 0-1.72l-6-3.52Zm-1 1.16a1 1 0 0 1 1 0L16 7.5l-5.5 3.2a1 1 0 0 1-1 0L3.99 7.5l5.5-3.22ZM3.06 9.65l6.44 3.62a1 1 0 0 0 .98 0l6.44-3.62a1 1 0 0 1-.42 1.26l-6 3.5a1 1 0 0 1-1.01 0l-6.01-3.5a1 1 0 0 1-.42-1.26Zm0 2.45 6.44 3.63a1 1 0 0 0 .98 0l6.44-3.63a1 1 0 0 1-.42 1.26l-6 3.5a1 1 0 0 1-1.01 0l-6.01-3.5a1 1 0 0 1-.42-1.26Z\"/>","more_horizontal":"<path d=\"M6.25 10a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0Zm5 0a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0ZM15 11.25a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Z\"/>","note":"<path d=\"M14 3a3 3 0 0 1 3 2.82v4.56a2 2 0 0 1-.47 1.28l-.12.13-4.62 4.62a2 2 0 0 1-1.24.58l-.17.01H6a3 3 0 0 1-3-2.82V6a3 3 0 0 1 2.82-3H14Zm0 1H6a2 2 0 0 0-2 1.85V14a2 2 0 0 0 1.85 2H10v-3a3 3 0 0 1 2.82-3H16V6a2 2 0 0 0-1.85-2H14Zm1.78 7H13a2 2 0 0 0-2 1.85V15.78l.09-.07 4.62-4.62a1 1 0 0 0 .07-.09Z\"/>","note_filled":"<path d=\"M14 3a3 3 0 0 1 3 2.82V10h-4.18a3 3 0 0 0-2.81 2.82L10 13v4H6a3 3 0 0 1-3-2.82V6a3 3 0 0 1 2.82-3H14Zm2.9 8a2 2 0 0 1-.36.65l-.13.14-4.62 4.62a2 2 0 0 1-.79.5V12.84a2 2 0 0 1 1.84-1.84L13 11h3.9Z\"/>","paint_bucket":"<path d=\"M9 2.5a.5.5 0 0 0-1 0V4c-.2.07-.4.19-.56.35L2.35 9.44a1.5 1.5 0 0 0 0 2.12L6.7 15.9a1.5 1.5 0 0 0 2.12 0l5.09-5.09a1.5 1.5 0 0 0 0-2.12L9.56 4.35A1.5 1.5 0 0 0 9 4V2.5ZM8 5.2v1.3a.5.5 0 0 0 1 0V5.2l4.19 4.2a.5.5 0 0 1 .08.6H3.2L8 5.2Zm-.6 9.99L3.2 11h9.1l-4.2 4.19a.5.5 0 0 1-.7 0Zm8.62-3.8a.6.6 0 0 0-1.04 0l-1.65 2.83a2.51 2.51 0 1 0 4.34 0l-1.65-2.83Zm-1.82 3.34 1.3-2.24 1.3 2.24a1.51 1.51 0 1 1-2.6 0Z\"/>","pen":"<path d=\"M17.18 2.93a2.97 2.97 0 0 0-4.26-.06l-9.37 9.38c-.33.32-.56.74-.66 1.2l-.88 3.94a.5.5 0 0 0 .6.6l3.92-.88c.47-.1.9-.33 1.24-.67l7.98-7.98.34.33a1 1 0 0 1 0 1.42l-.94.94a.5.5 0 0 0 .7.7l.94-.94a2 2 0 0 0 0-2.82l-.33-.34.67-.67a2.97 2.97 0 0 0 .05-4.15Zm-3.55.65a1.97 1.97 0 0 1 2.79 2.8l-9.36 9.35c-.2.2-.46.35-.74.4l-3.16.71.7-3.18c.07-.27.2-.51.4-.7l9.37-9.38Z\"/>","pen_filled":"<path d=\"M12.92 2.87a2.97 2.97 0 0 1 4.2 4.21l-.66.67.33.34a2 2 0 0 1 0 2.82l-.94.94a.5.5 0 0 1-.7-.7l.94-.94a1 1 0 0 0 0-1.42l-.34-.33-7.98 7.98c-.34.34-.77.57-1.24.68l-3.92.87a.5.5 0 0 1-.6-.6l.88-3.95c.1-.45.33-.86.66-1.2l9.37-9.37Z\"/>","person_circle":"<path d=\"M8 7a2 2 0 1 1 4 0 2 2 0 0 1-4 0Zm-.5 3h5c.83 0 1.5.67 1.5 1.5 0 1.12-.46 2.01-1.21 2.61-.74.6-1.74.89-2.79.89a4.43 4.43 0 0 1-2.79-.89A3.25 3.25 0 0 1 6 11.5c0-.83.67-1.5 1.5-1.5ZM10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm-7 8a7 7 0 1 1 14 0 7 7 0 0 1-14 0Z\"/>","play":"<path d=\"M17.22 8.69a1.5 1.5 0 0 1 0 2.62l-10 5.5A1.5 1.5 0 0 1 5 15.5v-11A1.5 1.5 0 0 1 7.22 3.2l10 5.5Zm-.48 1.75a.5.5 0 0 0 0-.88l-10-5.5A.5.5 0 0 0 6 4.5v11c0 .38.4.62.74.44l10-5.5Z\"/>","settings":"<path d=\"M1.91 7.38A8.5 8.5 0 0 1 3.7 4.3a.5.5 0 0 1 .54-.13l1.92.68a1 1 0 0 0 1.32-.76l.36-2a.5.5 0 0 1 .4-.4 8.53 8.53 0 0 1 3.55 0c.2.04.35.2.38.4l.37 2a1 1 0 0 0 1.32.76l1.92-.68a.5.5 0 0 1 .54.13 8.5 8.5 0 0 1 1.78 3.08c.06.2 0 .4-.15.54l-1.56 1.32a1 1 0 0 0 0 1.52l1.56 1.32a.5.5 0 0 1 .15.54 8.5 8.5 0 0 1-1.78 3.08.5.5 0 0 1-.54.13l-1.92-.68a1 1 0 0 0-1.32.76l-.37 2a.5.5 0 0 1-.38.4 8.53 8.53 0 0 1-3.56 0 .5.5 0 0 1-.39-.4l-.36-2a1 1 0 0 0-1.32-.76l-1.92.68a.5.5 0 0 1-.54-.13 8.5 8.5 0 0 1-1.78-3.08.5.5 0 0 1 .15-.54l1.56-1.32a1 1 0 0 0 0-1.52L2.06 7.92a.5.5 0 0 1-.15-.54Zm1.06 0 1.3 1.1a2 2 0 0 1 0 3.04l-1.3 1.1c.3.79.72 1.51 1.25 2.16l1.6-.58a2 2 0 0 1 2.63 1.53l.3 1.67a7.56 7.56 0 0 0 2.5 0l.3-1.67a2 2 0 0 1 2.64-1.53l1.6.58a7.5 7.5 0 0 0 1.24-2.16l-1.3-1.1a2 2 0 0 1 0-3.04l1.3-1.1a7.5 7.5 0 0 0-1.25-2.16l-1.6.58a2 2 0 0 1-2.63-1.53l-.3-1.67a7.55 7.55 0 0 0-2.5 0l-.3 1.67A2 2 0 0 1 5.81 5.8l-1.6-.58a7.5 7.5 0 0 0-1.24 2.16ZM7.5 10a2.5 2.5 0 1 1 5 0 2.5 2.5 0 0 1-5 0Zm1 0a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0Z\"/>","shapes":"<path d=\"M7.5 3a4.5 4.5 0 0 0-.5 8.97v1A5.5 5.5 0 1 1 12.98 7h-1A4.5 4.5 0 0 0 7.5 3Zm3 5A2.5 2.5 0 0 0 8 10.5v5a2.5 2.5 0 0 0 2.5 2.5h5a2.5 2.5 0 0 0 2.5-2.5v-5A2.5 2.5 0 0 0 15.5 8h-5ZM9 10.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5h-5A1.5 1.5 0 0 1 9 15.5v-5Z\"/>","share":"<path d=\"M9.5 3a.5.5 0 0 1 0 1H6a2 2 0 0 0-2 2v8c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2v-1.5a.5.5 0 0 1 1 0V14a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h3.5Zm3.8-.96a.5.5 0 0 1 .53.09l5 4.5a.5.5 0 0 1 0 .74l-5 4.5a.5.5 0 0 1-.83-.37V9.34c-1.4.13-2.67.78-3.7 1.6a9.55 9.55 0 0 0-2.2 2.5l-.15.28A.5.5 0 0 1 6 13.5c0-2.05.38-4.28 1.52-6.02A6.57 6.57 0 0 1 13 4.5V2.43a.5.5 0 0 1 .3-.39ZM14 5a.5.5 0 0 1-.5.5c-2.59 0-4.18 1.05-5.14 2.52a8.79 8.79 0 0 0-1.25 3.69 11 11 0 0 1 1.56-1.54 7.8 7.8 0 0 1 4.83-1.85c.28 0 .5.22.5.5v1.56L17.75 7 14 3.62V5Z\"/>","table":"<path d=\"M17 5.5A2.5 2.5 0 0 0 14.5 3h-9A2.5 2.5 0 0 0 3 5.5v9A2.5 2.5 0 0 0 5.5 17h9a2.5 2.5 0 0 0 2.5-2.5v-9Zm-13 9V13h3v3H5.36A1.5 1.5 0 0 1 4 14.5Zm8-1.5v3H8v-3h4Zm2.5 3H13v-3h3V14.64A1.5 1.5 0 0 1 14.5 16ZM12 8v4H8V8h4Zm1 0h3v4h-3V8Zm-1-4v3H8V4h4Zm1 0H14.64A1.5 1.5 0 0 1 16 5.5V7h-3V4ZM7 4v3H4V5.36A1.5 1.5 0 0 1 5.5 4H7Zm0 4v4H4V8h3Z\"/>","textbox":"<path d=\"M6.5 6C6.22386 6 6 6.22386 6 6.5C6 6.77614 6.22386 7 6.5 7H13.5C13.7761 7 14 6.77614 14 6.5C14 6.22386 13.7761 6 13.5 6H6.5ZM6 9.5C6 9.22386 6.22386 9 6.5 9H10.5C10.7761 9 11 9.22386 11 9.5C11 9.77614 10.7761 10 10.5 10H6.5C6.22386 10 6 9.77614 6 9.5ZM6.5 12C6.22386 12 6 12.2239 6 12.5C6 12.7761 6.22386 13 6.5 13H13.5C13.7761 13 14 12.7761 14 12.5C14 12.2239 13.7761 12 13.5 12H6.5ZM17 5.5C17 4.11929 15.8807 3 14.5 3H5.5C4.11929 3 3 4.11929 3 5.5V14.5C3 15.8807 4.11929 17 5.5 17H14.5C15.8807 17 17 15.8807 17 14.5V5.5ZM5.5 4H14.5C15.3284 4 16 4.67157 16 5.5V14.5C16 15.3284 15.3284 16 14.5 16H5.5C4.67157 16 4 15.3284 4 14.5V5.5C4 4.67157 4.67157 4 5.5 4Z\" fill=\"currentColor\"/>","text_font":"<path d=\"M6 2c.2 0 .4.13.47.32L8.9 8.57v.02l.18.44-.53 1.4-.46-1.17H3.91l-.94 2.42a.5.5 0 1 1-.94-.36L3.1 8.59v-.02l2.43-6.25A.5.5 0 0 1 6 2ZM4.3 8.26h3.4L6 3.88 4.3 8.26Zm8.17-2.94a.5.5 0 0 0-.94 0L7.15 17H6.5a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1h-.28l1.13-3h5.37l1.15 3h-.37a.5.5 0 1 0 0 1h2a.5.5 0 1 0 0-1h-.56L12.47 5.32ZM14.34 13H9.72l2.29-6.09L14.34 13Z\"/>","timer":"<path d=\"M7.5 2a.5.5 0 0 0 0 1h4a.5.5 0 0 0 0-1h-4Zm7.66 1.93a.5.5 0 1 0-.71.7l1.41 1.42a.5.5 0 1 0 .71-.7l-1.41-1.42ZM9.5 6a.5.5 0 0 0-.5.5v5a.5.5 0 0 0 1 0v-5a.5.5 0 0 0-.5-.5Zm0 12a7 7 0 1 0 0-14 7 7 0 0 0 0 14Zm0-1a6 6 0 1 1 0-12 6 6 0 0 1 0 12Z\"/>","zoom_in":"<path d=\"M8.5 5.5c.28 0 .5.22.5.5v2h2a.5.5 0 0 1 0 1H9v2a.5.5 0 0 1-1 0V9H6a.5.5 0 0 1 0-1h2V6c0-.28.22-.5.5-.5Zm0-3.5a6.5 6.5 0 0 1 4.94 10.73l3.41 3.42a.5.5 0 0 1-.63.76l-.07-.06-3.42-3.41A6.5 6.5 0 1 1 8.5 2Zm0 1a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Z\"/>","zoom_out":"<path d=\"M11 8a.5.5 0 0 1 0 1H6a.5.5 0 0 1 0-1h5ZM8.5 2a6.5 6.5 0 0 1 4.94 10.73l3.41 3.42a.5.5 0 0 1-.63.76l-.07-.06-3.42-3.41A6.5 6.5 0 1 1 8.5 2Zm0 1a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Z\"/>"};
+
+  // ================= 新版外壳 UI：对齐 Microsoft Whiteboard 外观 =================
+  function icon(n, s) { s = s || 20; return '<svg viewBox="0 0 20 20" width="' + s + '" height="' + s + '" fill="currentColor">' + (ICON[n] || '') + '</svg>'; }
+  // 笔：白色笔身 + 彩色笔尖 + 彩色笔尾环（对齐原版笔盘里的立体笔形）
+  function penSvg(c) {
+    return '<svg viewBox="0 0 26 46" width="21" height="37">' +
+      '<path d="M13 6.6 18.9 15v26.6a3.2 3.2 0 0 1-3.2 3.2h-5.4a3.2 3.2 0 0 1-3.2-3.2V15Z" ' +
+      'fill="#FEFEFE" stroke="#BBBBBB" stroke-width="1.2" stroke-linejoin="round"/>' +
+      '<path d="M13 1.8 16.1 7.6H9.9Z" fill="' + c + '"/>' +
+      '<path d="M7.1 30.2h11.8v11.4a3.2 3.2 0 0 1-3.2 3.2h-5.4a3.2 3.2 0 0 1-3.2-3.2Z" fill="' + c + '"/>' +
+      '<path d="M9.2 17.4v9.4" stroke="#EFEFEF" stroke-width="1.2" stroke-linecap="round"/></svg>';
+  }
+  // 荧光笔：扁平宽笔身 + 斜切笔头
+  function markerSvg(c) {
+    return '<svg viewBox="0 0 30 46" width="24" height="37">' +
+      '<path d="M7.6 13h14.8v28.6a3.2 3.2 0 0 1-3.2 3.2h-8.4a3.2 3.2 0 0 1-3.2-3.2Z" ' +
+      'fill="#FEFEFE" stroke="#BBBBBB" stroke-width="1.2" stroke-linejoin="round"/>' +
+      '<path d="M10.2 3.4h9.6l1.8 9.6H8.4Z" fill="' + c + '"/>' +
+      '<path d="M7.6 31.6h14.8v10a3.2 3.2 0 0 1-3.2 3.2h-8.4a3.2 3.2 0 0 1-3.2-3.2Z" fill="' + c + '"/>' +
+      '</svg>';
+  }
+  // 橡皮：方形橡皮块，顶端彩色盖（pink = 软橡皮/局部擦，gray = 整笔擦）
+  function eraserSvg(top) {
+    return '<svg viewBox="0 0 30 46" width="24" height="37">' +
+      '<path d="M6.6 13h16.8v28.6a3.2 3.2 0 0 1-3.2 3.2H9.8a3.2 3.2 0 0 1-3.2-3.2Z" ' +
+      'fill="#FCFCFC" stroke="#BBBBBB" stroke-width="1.2" stroke-linejoin="round"/>' +
+      '<path d="M6.6 13h16.8v9.4H6.6Z" fill="' + top + '"/>' +
+      '<path d="M10 27h10M10 31.4h10" stroke="#E4E4E4" stroke-width="1.2" stroke-linecap="round"/>' +
+      '</svg>';
+  }
+
+  // ---------- 静态图标 ----------
+  (function () {
+    $('bHome').innerHTML = icon('home');
+    $('titleChev').innerHTML = icon('chevron_down', 16);
+    $('bTimer').innerHTML = icon('timer');
+    $('bSettings').innerHTML = icon('settings');
+    $('gUser').innerHTML = icon('person_circle', 22);
+    $('gSettings').innerHTML = icon('settings', 22);
+    $('bUndo').innerHTML = icon('arrow_undo');
+    $('bRedo').innerHTML = icon('arrow_redo');
+    $('tSel').innerHTML = icon('cursor');
+    $('tEr').innerHTML = icon('eraser') + '<span class="rdot"></span>';
+    $('tPen').innerHTML = icon('pen') + '<span class="cdot"></span>';
+    $('tNote').innerHTML = '<span style="color:#FFC83D">' + icon('note_filled', 22) + '</span>';
+    $('tHeart').innerHTML = '<span style="color:#E8452C">' + icon('heart_filled', 22) + '</span>';
+    $('tText').innerHTML = icon('text_font');
+    $('tShape').innerHTML = icon('shapes');
+    $('tTable').innerHTML = icon('table');
+    $('bMore').innerHTML = icon('more_horizontal');
+    $('bZoomOut').innerHTML = icon('zoom_out', 18);
+    $('bZoomIn').innerHTML = icon('zoom_in', 18);
+    $('bFit').innerHTML = icon('arrow_fit', 18);
+    $('bAddPage').innerHTML = icon('add', 16);
+    $('bDelPage').innerHTML = icon('delete', 16);
+    $('bShare').innerHTML = icon('share', 16) + '<span>共享</span>';
+  })();
+
+  // ---------- 白板列表 / 存储 ----------
+  var BOARD_KEY = 'wb-board-id';
+  var boardId = localStorage.getItem(BOARD_KEY) || '';
+  var boardTitle = '无标题的白板';
+  var boardList = [];
+  var curThumb = null, lastThumb = 0;
+
+  function dbAll() {
+    return db().then(function (d) {
+      return new Promise(function (res) {
+        var out = [];
+        var rq = d.transaction(DB_STORE, 'readonly').objectStore(DB_STORE).openCursor();
+        rq.onsuccess = function () {
+          var c = rq.result;
+          if (!c) return res(out);
+          out.push({ key: c.key, val: c.value });
+          c.continue();
+        };
+        rq.onerror = function () { res(out); };
+      });
+    });
+  }
+  function dbPut(rec) {
+    return db().then(function (d) {
+      var tx = d.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).put(rec, rec.id);
+    });
+  }
+  function dbDel(id) {
+    return db().then(function (d) {
+      var tx = d.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).delete(id);
+    });
+  }
+
+  function pageBounds(pg) {
+    var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, any = false;
+    (pg.items || []).forEach(function (it) {
+      var b = boundsOf(it);
+      if (!b.w && !b.h) return;
+      any = true;
+      if (b.x < x0) x0 = b.x; if (b.y < y0) y0 = b.y;
+      if (b.x + b.w > x1) x1 = b.x + b.w; if (b.y + b.h > y1) y1 = b.y + b.h;
+    });
+    if (!any) return null;
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  }
+  function makeThumb() {
+    try {
+      var pg = doc.pages[0];
+      var b = pg && pageBounds(pg);
+      if (!b) return null;
+      var c = document.createElement('canvas');
+      c.width = 452; c.height = 240;
+      var x = c.getContext('2d');
+      x.fillStyle = '#ffffff'; x.fillRect(0, 0, 452, 240);
+      var k = Math.min(452 / (b.w + 90), 240 / (b.h + 90), 1.6);
+      x.setTransform(k, 0, 0, k, (452 - b.w * k) / 2 - b.x * k, (240 - b.h * k) / 2 - b.y * k);
+      pg.items.forEach(function (it) { try { drawItem(x, it); } catch (e) { } });
+      return c.toDataURL('image/png');
+    } catch (e) { return null; }
+  }
+
+  // 覆盖旧 flush：写进「多白板」结构
+  flush = function () {
+    if (!dirty) return;
+    dirty = false;
+    if (Date.now() - lastThumb > 1200) { curThumb = makeThumb(); lastThumb = Date.now(); }
+    var rec = {
+      id: boardId, title: boardTitle, updated: Date.now(), paper: paper,
+      active: doc.active, view: doc.view, thumb: curThumb,
+      pages: doc.pages.map(function (p) {
+        return {
+          id: p.id,
+          items: JSON.parse(JSON.stringify(p.items, function (k, v) { return k === 'el' ? undefined : v; })),
+          bg: p.bg && p.bg.src ? { src: p.bg.src, alpha: p.bg.alpha } : null
+        };
+      })
+    };
+    var meta = null;
+    for (var i = 0; i < boardList.length; i++) if (boardList[i].id === boardId) meta = boardList[i];
+    if (!meta) { meta = { id: boardId }; boardList.push(meta); }
+    meta.id = boardId; meta.title = boardTitle; meta.updated = rec.updated; meta.thumb = curThumb;
+    dbPut(rec).catch(function () { });
+  };
+
+  function fmtTime(t) {
+    if (!t) return '';
+    var d = new Date(t), n = new Date();
+    var hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    var sameDay = d.toDateString() === n.toDateString();
+    if (sameDay) return hm;
+    var y = new Date(n.getTime() - 864e5);
+    if (d.toDateString() === y.toDateString()) return '昨天 ' + hm;
+    if (d.getFullYear() === n.getFullYear()) return (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + hm;
+    return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日';
+  }
+
+  // ---------- 视图切换 ----------
+  function showGallery() {
+    flush();
+    $('board').classList.add('hide');
+    $('gallery').classList.remove('hide');
+    document.body.classList.add('gal');
+    renderGallery();
+  }
+  function showBoard() {
+    $('gallery').classList.add('hide');
+    $('board').classList.remove('hide');
+    document.body.classList.remove('gal');
+    resize(); sceneDirty = true; schedule();
+  }
+
+  function renderGallery() {
+    var g = $('gGrid');
+    g.innerHTML = '';
+    var nc = document.createElement('div');
+    nc.className = 'card new';
+    nc.innerHTML = '<div class="plus">' + icon('add', 22) + '</div><b>新建白板</b>';
+    nc.onclick = function () { newBoard(); };
+    g.appendChild(nc);
+    boardList.slice().sort(function (a, b) { return (b.updated || 0) - (a.updated || 0); }).forEach(function (b) {
+      var c = document.createElement('div');
+      c.className = 'card';
+      var th = document.createElement('div');
+      th.className = 'thumb';
+      if (b.thumb) th.style.backgroundImage = 'url(' + b.thumb + ')';
+      var meta = document.createElement('div');
+      meta.className = 'meta';
+      var t = document.createElement('b'); t.textContent = b.title || '无标题的白板';
+      var s = document.createElement('span'); s.textContent = '编辑时间：' + fmtTime(b.updated);
+      meta.appendChild(t); meta.appendChild(s);
+      var dots = document.createElement('button');
+      dots.className = 'dots'; dots.title = '更多'; dots.innerHTML = icon('more_horizontal', 18);
+      dots.onclick = function (e) { e.stopPropagation(); cardMenu(dots, b); };
+      c.appendChild(th); c.appendChild(meta); c.appendChild(dots);
+      c.onclick = function () { openBoard(b.id); };
+      g.appendChild(c);
+    });
+  }
+
+  function applyBoard(b) {
+    boardId = b.id;
+    boardTitle = b.title || '无标题的白板';
+    localStorage.setItem(BOARD_KEY, boardId);
+    doc.pages = (b.pages && b.pages.length ? b.pages : [{ id: uid(), items: [], bg: null }]).map(function (p) {
+      return normalizePage({ id: p.id || uid(), items: p.items, strokes: p.strokes, bg: p.bg || null });
+    });
+    doc.active = Math.min(b.active || 0, doc.pages.length - 1);
+    if (b.view && b.view.s) doc.view = { x: b.view.x || 0, y: b.view.y || 0, s: b.view.s };
+    paper = b.paper || 'light';
+    curThumb = b.thumb || null;
+    doc.pages.forEach(restoreBg);
+    undoStack.length = 0; redoStack.length = 0; sel = [];
+    $('titleText').value = boardTitle; fitTitle();
+    renderPages(); updateZoom(); syncChrome();
+    sceneDirty = true; schedule();
+  }
+
+  function openBoard(id) {
+    flush();
+    dbAll().then(function (rows) {
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i].key === id) { applyBoard(rows[i].val); showBoard(); return; }
+      }
+      newBoard();
+    });
+  }
+  function newBoard() {
+    flush();
+    var rec = {
+      id: uid(), title: '无标题的白板', updated: Date.now(), paper: 'light',
+      active: 0, view: { x: 0, y: 0, s: 1 }, thumb: null,
+      pages: [{ id: uid(), items: [], bg: null }]
+    };
+    boardList.push({ id: rec.id, title: rec.title, updated: rec.updated, thumb: null });
+    dbPut(rec).catch(function () { });
+    applyBoard(rec);
+    showBoard();
+  }
+
+  // ---------- 菜单 ----------
+  function menuItems(host, items) {
+    host.innerHTML = '';
+    items.forEach(function (it) {
+      if (it === '-') { host.appendChild(document.createElement('hr')); return; }
+      var d = document.createElement('div');
+      d.className = 'item';
+      d.innerHTML = icon(it.i, 18) + '<span>' + it.t + '</span>' + (it.k ? '<span class="kbd">' + it.k + '</span>' : '');
+      d.onclick = function (e) { e.stopPropagation(); host.classList.remove('show'); it.f(); };
+      host.appendChild(d);
+    });
+  }
+  var openMenuHost = null;
+  function placeMenu(host, btn, up) {
+    hideMenus();
+    openMenuHost = host;
+    host.classList.add('show');
+    var r = btn.getBoundingClientRect();
+    var w = host.offsetWidth, h = host.offsetHeight;
+    var left = Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2));
+    var top = up ? r.top - h - 8 : r.bottom + 6;
+    if (top < 8) top = r.bottom + 6;
+    host.style.left = left + 'px'; host.style.top = top + 'px';
+  }
+  function hideMenus() {
+    ['insMenu', 'moreMenu', 'boardMenu', 'setMenu', 'cardMenu', 'emojiMenu'].forEach(function (id) { $(id).classList.remove('show'); });
+    openMenuHost = null;
+    $('penTray').classList.remove('show');
+  }
+
+  function ask(msg, ok) {
+    var o = document.createElement('div');
+    o.className = 'modal';
+    o.innerHTML = '<div class="box"><p></p><div class="row"><button class="ghost">取消</button><button class="pri">确定</button></div></div>';
+    o.querySelector('p').textContent = msg;
+    o.querySelector('.ghost').onclick = function () { o.remove(); };
+    o.querySelector('.pri').onclick = function () { o.remove(); ok(); };
+    o.onclick = function (e) { if (e.target === o) o.remove(); };
+    document.body.appendChild(o);
+  }
+
+  // ---------- 笔盘 ----------
+  var PEN_COLORS = ['#000000', '#C50F1F', '#0C35FB'];
+  function buildPenTray() {
+    var h = $('penTray');
+    h.innerHTML = '';
+    PEN_COLORS.forEach(function (c) {
+      var b = document.createElement('button');
+      b.className = 'pen'; b.dataset.c = c; b.title = '笔';
+      b.innerHTML = penSvg(c);
+      b.onclick = function () { setColorTo(c); setTool('pen'); markPens(); };
+      h.appendChild(b);
+    });
+    var hl = document.createElement('button');
+    hl.className = 'pen'; hl.dataset.tool = 'hl'; hl.title = '荧光笔（再点换粗细）';
+    hl.innerHTML = markerSvg('#F2E900');
+    hl.onclick = function () { setTool('hl'); markPens(); };
+    h.appendChild(hl);
+    var er2 = document.createElement('button');
+    er2.className = 'pen'; er2.dataset.tool = 'erp'; er2.title = '局部橡皮：只擦掉划过的部分';
+    er2.innerHTML = eraserSvg('#F58BA4');
+    er2.onclick = function () { setTool('erp'); markPens(); };
+    h.appendChild(er2);
+    var er = document.createElement('button');
+    er.className = 'pen'; er.dataset.tool = 'ers'; er.title = '整笔橡皮';
+    er.innerHTML = eraserSvg('#D8D8D8');
+    er.onclick = function () { setTool('ers'); markPens(); };
+    h.appendChild(er);
+    var cus = document.createElement('button');
+    cus.className = 'pen custom'; cus.title = '更多颜色';
+    cus.innerHTML = '<span class="ring"></span>';
+    var inp = document.createElement('input');
+    inp.type = 'color'; inp.value = color;
+    inp.oninput = function () { setColorTo(inp.value); setTool('pen'); markPens(); };
+    cus.appendChild(inp);
+    h.appendChild(cus);
+    var sep = document.createElement('div');
+    sep.className = 'vsep';
+    h.appendChild(sep);
+    var x = document.createElement('button');
+    x.className = 'pen'; x.title = '关闭';
+    x.innerHTML = icon('dismiss', 18);
+    x.onclick = function () { $('penTray').classList.remove('show'); };
+    h.appendChild(x);
+  }
+  function setColorTo(c) {
+    color = c;
+    var host = $('colors');
+    if (host) Array.prototype.forEach.call(host.children, function (x) { x.classList.remove('on'); });
+    var cd = document.querySelector('#tPen .cdot');
+    if (cd) cd.style.background = c;
+  }
+  function markPens() {
+    Array.prototype.forEach.call($('penTray').children, function (b) {
+      if (b.classList.contains('custom') || b.classList.contains('vsep')) return;
+      var on = false;
+      if (b.dataset.c) on = (tool === 'pen' && color.toLowerCase() === b.dataset.c.toLowerCase());
+      if (b.dataset.tool === 'hl') on = (tool === 'hl');
+      if (b.dataset.tool === 'ers') on = (tool === 'ers');
+      if (b.dataset.tool === 'erp') on = (tool === 'erp');
+      b.classList.toggle('on', on);
+    });
+    var cu = $('penTray').querySelector('.custom');
+    if (cu) cu.classList.toggle('on', tool === 'pen' && PEN_COLORS.indexOf(color.toLowerCase()) < 0);
+  }
+
+  // ---------- 工具栏状态同步 ----------
+  function syncChrome() {
+    var map = { pen: 'tPen', sel: 'tSel', ers: 'tEr', erp: 'tEr', note: 'tNote', text: 'tText', table: 'tTable' };
+    ['tPen', 'tSel', 'tEr', 'tNote', 'tText', 'tTable'].forEach(function (id) { $(id).classList.toggle('on', map[tool] === id); });
+    var cd = document.querySelector('#tPen .cdot');
+    if (cd) cd.style.background = color;
+    markPens();
+  }
+  var _setTool = setTool;
+  setTool = function (t) { _setTool(t); syncChrome(); };
+
+  // ---------- 表情 ----------
+  var EMOJI = ['😀', '👍', '❤️', '🎉', '⭐', '✅', '❓', '🔥'];
+  function insertEmoji(ch) {
+    var w = toWorld(W / 2, H / 2);
+    pushUndo();
+    addItem({ id: uid(), kind: 'text', x: w.x - 34, y: w.y - 34, w: 68, h: 68, size: 44, c: '#232323', text: ch, rot: 0 });
+    sceneDirty = true; schedule(); save();
+  }
+
+  // ---------- 计时器 ----------
+  var timerEnd = 0, timerT = null;
+  function startTimer(min) {
+    timerEnd = Date.now() + min * 60000;
+    $('timerBadge').classList.remove('hide');
+    clearInterval(timerT);
+    timerT = setInterval(function () {
+      var left = timerEnd - Date.now();
+      if (left <= 0) {
+        clearInterval(timerT); timerT = null;
+        $('timerBadge').classList.add('hide');
+        toast('计时结束');
+        return;
+      }
+      var s = Math.ceil(left / 1000);
+      $('timerBadge').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    }, 250);
+    $('timerBadge').textContent = min + ':00';
+  }
+
+  // ---------- 顶栏 ----------
+  $('bHome').onclick = function () { showGallery(); };
+  function fitTitle() {
+    var t = $('titleText');
+    var w = 0;
+    for (var i = 0; i < t.value.length; i++) w += t.value.charCodeAt(i) > 255 ? 15 : 8;
+    t.style.width = Math.min(330, Math.max(40, w + 16)) + 'px';
+  }
+  $('titleText').oninput = function () { boardTitle = this.value || '无标题的白板'; fitTitle(); save(); };
+  $('titleText').onblur = function () { if (!this.value.trim()) { this.value = '无标题的白板'; boardTitle = this.value; save(); } };
+  $('titleText').onkeydown = function (e) { e.stopPropagation(); if (e.key === 'Enter' || e.key === 'Escape') this.blur(); };
+  $('titleChev').onclick = function () {
+    menuItems($('boardMenu'), [
+      { i: 'edit', t: '重命名白板', f: function () { $('titleText').focus(); $('titleText').select(); } },
+      { i: 'arrow_download', t: '导出当前页 PNG', f: function () { $('bSave').click(); } },
+      { i: 'code', t: '备份 / 恢复 JSON', f: function () { $('bJson').click(); } },
+      '-',
+      { i: 'add', t: '加一页', f: function () { $('bAddPage').click(); } },
+      { i: 'delete', t: '删除当前页', f: function () { $('bDelPage').click(); } },
+      '-',
+      { i: 'delete', t: '删除此白板', f: function () { ask('删除「' + boardTitle + '」？此操作不可撤销。', function () { delBoard(boardId); }); } }
+    ]);
+    placeMenu($('boardMenu'), this, false);
+  };
+  $('bShare').onclick = function () { toast('离线模式：共享与协作不可用'); };
+  $('bTimer').onclick = function () {
+    menuItems($('setMenu'), [
+      { i: 'timer', t: '1 分钟', f: function () { startTimer(1); } },
+      { i: 'timer', t: '3 分钟', f: function () { startTimer(3); } },
+      { i: 'timer', t: '5 分钟', f: function () { startTimer(5); } },
+      { i: 'timer', t: '10 分钟', f: function () { startTimer(10); } },
+      '-',
+      { i: 'dismiss', t: '取消计时', f: function () { clearInterval(timerT); $('timerBadge').classList.add('hide'); } }
+    ]);
+    placeMenu($('setMenu'), this, false);
+  };
+  $('bSettings').onclick = function () { settingsMenu(this); };
+  $('gSettings').onclick = function () { settingsMenu(this); };
+  $('gUser').onclick = function () { toast('本地离线账户'); };
+
+  function settingsMenu(btn) {
+    menuItems($('setMenu'), [
+      { i: 'paint_bucket', t: '纸张底色', k: '深/白/格/点', f: function () { $('bBg').click(); } },
+      { i: 'image', t: '导入图片当底图', f: function () { pendingImageAt = null; $('fileImg').click(); } },
+      { i: 'play', t: '回放书写过程', f: function () { $('bReplay').click(); } },
+      '-',
+      { i: 'arrow_download', t: '导出 PNG', f: function () { $('bSave').click(); } },
+      { i: 'code', t: '备份 / 恢复 JSON', f: function () { $('bJson').click(); } },
+      '-',
+      { i: 'text_font', t: '快捷键与说明', k: '?', f: function () { $('bHelp').click(); } },
+      { i: 'home', t: '回到主页', f: function () { showGallery(); } }
+    ]);
+    placeMenu($('setMenu'), btn, false);
+  }
+
+  // ---------- 工具栏 ----------
+  $('tPen').onclick = function () {
+    setTool('pen');
+    var t = $('penTray');
+    if (t.classList.contains('show')) { t.classList.remove('show'); return; }
+    hideMenus();
+    t.classList.add('show');
+    markPens();
+    var r = $('toolbar').getBoundingClientRect();
+    t.style.left = Math.round(r.left + r.width / 2) + 'px';
+  };
+  $('tHeart').onclick = function () {
+    var h = $('emojiMenu');
+    h.innerHTML = '';
+    EMOJI.forEach(function (ch) {
+      var b = document.createElement('button');
+      b.className = 'emo'; b.textContent = ch;
+      b.onclick = function () { h.classList.remove('show'); insertEmoji(ch); };
+      h.appendChild(b);
+    });
+    placeMenu(h, this, true);
+  };
+  $('tShape').onclick = function () {
+    menuItems($('insMenu'), [
+      { i: 'image', t: '图片', f: function () { pendingImageAt = toWorld(W / 2, H / 2); $('fileImg').click(); } },
+      { i: 'table', t: '表格', f: function () { createTable(); } },
+      { i: 'note', t: '便签', f: function () { createNote(); } },
+      { i: 'text_font', t: '文本框', f: function () { createText(); } },
+      { i: 'shapes', t: '形状', f: function () { openShapeMenu($('tShape')); } },
+      '-',
+      { i: 'lasso', t: '套索选择', f: function () { setTool('lasso'); } },
+      { i: 'eraser', t: '局部橡皮', f: function () { setTool('erp'); } },
+      { i: 'paint_bucket', t: '图片当底图', f: function () { pendingImageAt = null; $('fileImg').click(); } },
+      { i: 'play', t: '回放', f: function () { $('bReplay').click(); } }
+    ]);
+    placeMenu($('insMenu'), this, true);
+  };
+  $('bMore').onclick = function () {
+    menuItems($('moreMenu'), [
+      { i: 'highlight', t: '荧光笔', k: '2', f: function () { $('tHl').click(); } },
+      { i: 'lasso', t: '套索选择', k: 'L', f: function () { setTool('lasso'); } },
+      { i: 'eraser', t: '局部橡皮', k: '4', f: function () { setTool('erp'); } },
+      { i: 'shapes', t: '形状', k: 'S', f: function () { openShapeMenu($('bMore')); } },
+      '-',
+      { i: 'paint_bucket', t: '纸张底色', f: function () { $('bBg').click(); } },
+      { i: 'arrow_download', t: '导出 PNG', k: 'Ctrl+S', f: function () { $('bSave').click(); } },
+      { i: 'code', t: '备份 / 恢复 JSON', f: function () { $('bJson').click(); } },
+      { i: 'text_font', t: '快捷键', k: '?', f: function () { $('bHelp').click(); } },
+      '-',
+      { i: 'add', t: '新建白板', f: function () { ask('新建一个空白白板？当前白板会自动保存。', function () { newBoard(); }); } }
+    ]);
+    placeMenu($('moreMenu'), this, true);
+  };
+
+  function openShapeMenu(btn) {
+    var m = $('shapeMenu');
+    if (m.classList.contains('show')) { m.classList.remove('show'); return; }
+    hideMenus();
+    setTool('shape');
+    m.classList.add('show');
+    var r = btn.getBoundingClientRect();
+    m.style.left = Math.round(r.left + r.width / 2 - m.offsetWidth / 2) + 'px';
+    m.style.top = Math.round(r.top - m.offsetHeight - 8) + 'px';
+  }
+  // 形状面板的锚点改到可见按钮上
+  $('tShape').onclick = function () { openShapeMenu($('tShape')); };
+
+  // ---------- 缩放 ----------
+  $('zBtn').onclick = function () { resetView(); };
+
+  // ---------- 卡片菜单 ----------
+  function cardMenu(btn, b) {
+    menuItems($('cardMenu'), [
+      { i: 'edit', t: '打开', f: function () { openBoard(b.id); } },
+      { i: 'text_font', t: '重命名', f: function () { openBoard(b.id); } },
+      { i: 'arrow_download', t: '导出 PNG', f: function () { openBoard(b.id); setTimeout(function () { $('bSave').click(); }, 400); } },
+      '-',
+      { i: 'delete', t: '删除', f: function () { ask('删除「' + (b.title || '无标题的白板') + '」？', function () { delBoard(b.id); }); } }
+    ]);
+    placeMenu($('cardMenu'), btn, false);
+  }
+  function delBoard(id) {
+    dbDel(id).catch(function () { });
+    boardList = boardList.filter(function (x) { return x.id !== id; });
+    if (id === boardId) {
+      boardId = uid(); boardTitle = '无标题的白板';
+      doc.pages = [{ id: uid(), items: [], bg: null }]; doc.active = 0;
+      undoStack.length = 0; redoStack.length = 0; sel = [];
+    }
+    renderGallery();
+    toast('已删除');
+  }
+
+  // ---------- 点击外部关闭浮层 ----------
+  document.addEventListener('pointerdown', function (e) {
+    var t = e.target;
+    if (t.closest && (t.closest('.menu') || t.closest('#penTray') || t.closest('#toolbar') || t.closest('#topbar') || t.closest('.card') || t.closest('#shapeMenu'))) return;
+    hideMenus();
+    $('shapeMenu').classList.remove('show');
+  }, true);
+
+  // ---------- 启动 ----------
+  function boot() {
+    buildPenTray();
+    resize(); updateZoom(); renderPages(); syncUndoBtns(); syncChrome();
+    dbAll().then(function (rows) {
+      var legacy = null;
+      rows.forEach(function (r) {
+        if (r.key === 'doc') { legacy = r.val; return; }
+        var v = r.val || {};
+        boardList.push({ id: v.id || r.key, title: v.title, updated: v.updated || 0, thumb: v.thumb || null });
+      });
+      var hash = location.hash.replace('#', '');
+      if (hash === 'new') { newBoard(); return; }
+      if (!boardList.length) {
+        var pages = legacy && legacy.pages ? legacy.pages : null;
+        var rec = {
+          id: uid(), title: '无标题的白板', updated: Date.now(),
+          paper: (legacy && legacy.paper) || 'light',
+          active: (legacy && legacy.active) || 0,
+          view: (legacy && legacy.view) || { x: 0, y: 0, s: 1 },
+          thumb: null,
+          pages: pages || [{ id: uid(), items: [], bg: null }]
+        };
+        boardList.push({ id: rec.id, title: rec.title, updated: rec.updated, thumb: null });
+        dbPut(rec).catch(function () { });
+        applyBoard(rec);
+        if (hash === 'gallery') showGallery(); else showBoard();
+        return;
+      }
+      var target = null;
+      for (var i = 0; i < rows.length; i++) if (rows[i].key === boardId) target = rows[i];
+      if (!target) target = rows.filter(function (r) { return r.key !== 'doc'; })[0];
+      if (target) { applyBoard(target.val); }
+      if (hash === 'gallery') showGallery(); else showBoard();
+    });
+  }
+
   // ---------- 启动 ----------
   buildPalette();
-  resize();
-  updateZoom();
-  renderPages();
-  syncUndoBtns();
   setTool('pen');
-  load().then(function () {
-    if (!localStorage.getItem('wb-local-seen')) {
-      localStorage.setItem('wb-local-seen', '1');
-      setTimeout(function () { hint('按住空格拖动可平移 · Ctrl+滚轮缩放'); }, 800);
-    }
-  });
+  boot();
 })();
 </script>
 </body>

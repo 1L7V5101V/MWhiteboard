@@ -5,10 +5,13 @@
 面向消费者的 Microsoft Whiteboard 已于 2026-10 停用。官方客户端打开后只显示
 「感谢你使用 Microsoft Whiteboard / 已于 2026 年 10 月停用」，没有画廊、没法画。
 这套东西让它在**本机离线**继续可用：窗口、包身份、WebView2、输入栈全是微软原装，
-里面跑的页面换成了自己写的单文件白板（约 2100 行 / 76KB），
-书写引擎按原版 ink core 逆向移植，对象层（文本/便签/形状/表格/图片）自建。
+里面跑的页面换成了自己写的单文件白板（约 2800 行 / 128KB），
+书写引擎按原版 ink core 逆向移植，对象层（文本/便签/形状/表格/图片）自建，
+外观（画廊 + 顶栏 + 工具栏 + 笔盘 + 缩放）对着原版截图逐像素取色复刻。
 
 ![界面](demo.png)
+
+![画廊](gallery.png)
 
 当前状态：**已安装并验证通过**（零管理员方案，见下文 A）。
 
@@ -100,7 +103,7 @@ python .\salvage.py      # 已跑过：boards\ + gallery.html
 
 ```
 wb-local/
-  whiteboard.html        离线白板（单文件，无外部依赖，2100 行 / 89KB）
+  whiteboard.html        离线白板（单文件，无外部依赖，约 2800 行 / 128KB）
   server.py              本地服务：/health + /api/* 空壳 + 托管白板页（--https-only）
   install-noadmin.ps1    ★ A：环境变量 + 证书 + 服务 + 登录自启
   install-scoped.ps1     A+：per-app WebView2 策略（需 UAC）
@@ -111,8 +114,12 @@ wb-local/
     ink-test.mjs         无头 Edge + CDP 的墨迹引擎回归测试
     obj-test.js          对象层 21 项回归（node _re\probe.mjs _re\obj-test.js）
     demo.js              生成下面那张演示板
+    icons.js             46 个 Fluent 图标的内联 path（生成物，已内联进 html）
+    mkicons.js           icons/*.svg → icons.js
+    splice.py            CSS/DOM/chrome.js 拼进 whiteboard.html 的一次性脚本
     probe.mjs            单表达式探针（可强制出帧后读像素）
   demo.png               演示板（README 头图）
+  gallery.png            画廊页
   salvage.py             从 IndexedDB 抢救缩略图
   setup.ps1  teardown.ps1   旧方案（hosts + 443），已废弃，仅留作参考
   backup.ps1             整包备份 + restore.md
@@ -158,7 +165,40 @@ IndexedDB 自动保存（500ms 防抖）。
 
 ---
 
-## 五、坑（全部实测过）
+## 五、外观复刻：对着原版截图逐项对齐
+
+原版截图取色（System.Drawing 直方图，落在纯色块上的值才可信）：
+
+| 位置 | 原版值 | 用在哪 |
+|---|---|---|
+| 画廊底色 | `#E4E4E4` | `--bg` |
+| 新建白板卡片 | `#0D36F8` | `.card.new` |
+| 卡片 / 顶栏 / 工具条 | `#FFFFFF` | 面板底色 |
+| 顶栏下边框 | `#EFEFEF` | `#topbar` |
+| 卡片缩略图分隔线 | `#F3F3F3` | `.card .thumb` |
+| 图标 | `#242424` | `.tb` |
+
+结构（全部按截图重做）：
+
+- **画廊**：3 列 `226×180` 卡片、`24px` 间距、整块 `726px` 居中；新建卡片是蓝底 + 白圆 + 「新建白板」，
+  已有卡片 = 120px 缩略图 + 标题 + `编辑时间: HH:MM` + `…` 菜单；右上角只有头像和齿轮。
+- **顶栏**：`home | 标题 ⌄`（标题宽度按字符数自适应）+ 右侧 `计时器 | 共享 | 齿轮`，
+  `共享` 是带 1px 边框的按钮。
+- **工具栏**：拆成两张浮动卡片 —— 左边单独一张只有撤销（重做在有可重做内容时才出现），
+  右边一张 `选择 / 橡皮 / 笔 / 便签 / 表情 / 文本 / 形状 / 表格 / …`。
+  便签是黄色实心、爱心是红色实心（原版是彩色 3D 图标，这里用 Fluent filled 上色）。
+- **笔盘**：`黑 / 红 / 蓝` 三支笔 + 黄色荧光笔 + 粉色局部橡皮 + 灰色整笔橡皮 + 取色环 + 关闭。
+  笔是矢量画的（白笔身 + 彩色笔尖 + 彩色笔尾环），原版是位图 3D 笔。
+- **缩放**：右下两张卡片，`− 100% +` 和单独一个「适应」。
+- **页码**：左下角小卡片（原版多页时才出现，这里常驻）。
+
+图标全部来自 `@fluentui/svg-icons`（MIT），`mkicons.js` 把 path 抽出来内联成 `var ICON={...}`，
+**坑：Fluent 原始 svg 根节点是 `fill="none"`，path 上没有 fill，直接内联会全隐形** ——
+`icon()` 必须写 `fill="currentColor"`。
+
+---
+
+## 六、坑（全部实测过）
 
 1. **系统代理会让 `--host-resolver-rules` 失效**。走代理时域名由代理端解析，
    resolver rules 完全不生效（会拿到真微软页）。所以 flag 里必须同时出现
@@ -184,7 +224,7 @@ IndexedDB 自动保存（500ms 防抖）。
 
 ---
 
-## 六、已验证（本机实测）
+## 七、已验证（本机实测）
 
 - 完整循环：卸载 → 重启应用 → 微软退役页（`evidence-before.png`）；
   安装 → 重启应用 → 本地白板且笔迹持久化（`evidence-after.png`，两次截图字节一致）
@@ -196,7 +236,7 @@ IndexedDB 自动保存（500ms 防抖）。
 
 ---
 
-## 七、书写引擎：从原版 ink core 逆向移植
+## 八、书写引擎：从原版 ink core 逆向移植
 
 原版白板前端是 webpack 打包，入口 `app.v26.11029.105.js` 里带完整 chunk 映射表
 （643 个 name / 987 个 hash）。落盘了 984 个 chunk，书写相关的在
@@ -234,6 +274,9 @@ HL_ALPHA = 0.3
 3. **荧光笔是 3 档固定宽度**（原版 `[{sizeOffset:3,opacity:.1},{sizeOffset:2,opacity:.15},{sizeOffset:0,opacity:.2}]`），
    没有原版那种「按笔压连续变化」。
 4. **没有 haptics**（触控笔震动反馈，Windows 上本来也用不到）。
+5. **笔盘里是矢量笔形**，原版是位图 3D 笔渲染；便签/爱心用 Fluent 实心图标上色，
+   原版是自带彩色 3D 图标。形状/缩放/顶栏的线性图标是同一套 Fluent，观感基本一致。
+6. **页码胶囊常驻左下角**（原版只在多页时出现），多页/删页逻辑是本地加的。
 
 ### 局部擦除怎么切的
 
@@ -292,7 +335,7 @@ node _re\ink-test.mjs                           # 旧的纯笔迹测试（items 
 
 ---
 
-## 八、没做的部分（有意留白）
+## 九、没做的部分（有意留白）
 
 原版前端共 643 个具名 chunk。书写（A 层）与对象（B 层）已经补齐，
 剩下的是应用层与需要服务端的东西。

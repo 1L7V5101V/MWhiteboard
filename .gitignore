@@ -14,6 +14,10 @@ _re/chunkmap.json
 _re/index.html
 _re/chunknames.txt
 _re/mod_*.js
+_re/_inline.js
+_re/*.py
+_re/*.png
+_re/*.mjs
 
 # ---- 从旧白板抢救出来的个人内容（缩略图里是真实作业） ----
 boards/
@@ -28,3 +32,7 @@ __pycache__/
 *.pyc
 .DS_Store
 Thumbs.db
+_re/chk*.js
+_re/shot-*.js
+_re/whiteboard.before-chrome.html
+_re/ext.py

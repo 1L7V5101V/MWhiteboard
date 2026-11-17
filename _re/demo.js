@@ -19,12 +19,12 @@
 
   d.createText({ x: 90, y: 150 });
   await sleep(40);
-  Object.assign(last(), { w: 620, size: 32, c: '#ffffff' });
+  Object.assign(last(), { w: 620, size: 32, c: '#111111' });
   setText(last(), 'MWhiteboard');
 
   d.createText({ x: 92, y: 202 });
   await sleep(40);
-  Object.assign(last(), { w: 760, size: 15, c: '#8b98a5' });
+  Object.assign(last(), { w: 760, size: 15, c: '#6b6b6b' });
   setText(last(), '微软官方外壳 · 本地离线 · 原版墨迹引擎逆向移植');
 
   // ---- 笔迹 ----
@@ -61,7 +61,7 @@
   note.rot = -0.05;
 
   // ---- 形状 ----
-  d.addItem({ id: 'r1', kind: 'shape', s: 'rect', x: 90, y: 430, w: 200, h: 120, c: '#ffffff', sw: 2, fill: null, rot: 0 });
+  d.addItem({ id: 'r1', kind: 'shape', s: 'rect', x: 90, y: 430, w: 200, h: 120, c: '#0C35FB', sw: 2, fill: null, rot: 0 });
   d.addItem({ id: 'a1', kind: 'shape', s: 'arrow', x1: 296, y1: 490, x2: 486, y2: 490, c: '#34c759', sw: 2.5 });
   d.addItem({ id: 'e1', kind: 'shape', s: 'ellipse', x: 90, y: 566, w: 120, h: 96, c: '#ff9f1a', sw: 2, fill: null, rot: 0 });
   d.addItem({ id: 'd1', kind: 'shape', s: 'diamond', x: 230, y: 566, w: 110, h: 96, c: '#ff5cae', sw: 2, fill: null, rot: 0 });
@@ -73,12 +73,13 @@
   Object.assign(tbl, { w: 400, h: 200 });
   const cells = [['对象', '状态', '说明'], ['笔迹', '已移植', '压感 / 抽稀 / 样条'], ['对象层', '已实现', '文本 / 便签 / 形状']];
   for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) tbl.cells[r][c] = cells[r][c];
+  tbl.tc = '#111111';
 
   // ---- 底部说明 ----
   d.setTool('pen');
-  d.createText({ x: 92, y: 700 });
+  d.createText({ x: 132, y: 672 });
   await sleep(40);
-  Object.assign(last(), { w: 430, size: 14, c: '#c8d2dc' });
+  Object.assign(last(), { w: 430, size: 14, c: '#8a8a8a' });
   setText(last(), '拖动移动 · 8 手柄缩放 · 圆点旋转 · 套索 · 右键菜单');
 
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));

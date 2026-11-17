@@ -1,0 +1,122 @@
+<div id="gallery">
+  <div class="gal-top">
+    <button class="gbtn" id="gUser" title="账户"></button>
+    <button class="gbtn" id="gSettings" title="设置"></button>
+  </div>
+  <div class="gal-wrap"><div class="gal-grid" id="gGrid"></div></div>
+</div>
+
+<div id="board" class="hide">
+  <canvas id="stage"></canvas>
+
+  <header id="topbar">
+    <button class="tb" id="bHome" title="主页"></button>
+    <div class="tb-title">
+      <input id="titleText" value="无标题的白板" spellcheck="false" autocomplete="off">
+      <button id="titleChev" title="白板菜单"></button>
+    </div>
+    <div class="tb-right">
+      <button class="tb" id="bTimer" title="计时器"></button>
+      <button class="tbtn" id="bShare"></button>
+      <button class="tb" id="bSettings" title="设置"></button>
+    </div>
+  </header>
+
+  <div id="toolbar">
+    <button class="tb" id="bUndo" title="撤销 (Ctrl+Z)"></button>
+    <button class="tb" id="bRedo" title="重做 (Ctrl+Y)"></button>
+    <div class="vsep"></div>
+    <button class="tb" id="tSel" title="选择 (V)"></button>
+    <button class="tb" id="tEr" title="橡皮 (3)"></button>
+    <button class="tb" id="tPen" title="笔 (1)"></button>
+    <button class="tb" id="tNote" title="便签 (N)"></button>
+    <button class="tb" id="tHeart" title="表情"></button>
+    <button class="tb" id="tText" title="文本 (T)"></button>
+    <button class="tb" id="tIns" title="插入"></button>
+    <button class="tb" id="bMore" title="更多"></button>
+  </div>
+
+  <div id="penTray"></div>
+
+  <div id="zoomCtl">
+    <button class="tb" id="bZoomOut" title="缩小"></button>
+    <button id="zBtn"><b id="zLbl">100%</b></button>
+    <button class="tb" id="bZoomIn" title="放大"></button>
+    <div class="vsep"></div>
+    <button class="tb" id="bFit" title="视图复位 (0)"></button>
+  </div>
+
+  <div id="pageCtl">
+    <div id="pages"></div>
+    <button class="tb" id="bAddPage" title="加一页"></button>
+    <button class="tb" id="bDelPage" title="删除当前页"></button>
+  </div>
+
+  <div id="timerBadge" class="hide"></div>
+  <div id="insMenu" class="menu"></div>
+  <div id="moreMenu" class="menu"></div>
+  <div id="boardMenu" class="menu"></div>
+  <div id="setMenu" class="menu"></div>
+  <div id="cardMenu" class="menu"></div>
+  <div id="emojiMenu" class="menu"></div>
+</div>
+
+<div id="hint"></div>
+<div id="toast"></div>
+<textarea id="tedit" spellcheck="false"></textarea>
+<div id="ctxmenu"></div>
+<div id="shapeMenu">
+  <button data-s="rect" title="矩形"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="2"/></svg></button>
+  <button data-s="ellipse" title="椭圆"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8.5" ry="6.5"/></svg></button>
+  <button data-s="tri" title="三角形"><svg viewBox="0 0 24 24"><path d="M12 5l8 14H4z"/></svg></button>
+  <button data-s="diamond" title="菱形"><svg viewBox="0 0 24 24"><path d="M12 4l8 8-8 8-8-8z"/></svg></button>
+  <button data-s="line" title="直线"><svg viewBox="0 0 24 24"><path d="M4 19L20 5"/></svg></button>
+  <button data-s="arrow" title="箭头（端点吸附到对象边缘）"><svg viewBox="0 0 24 24"><path d="M4 19L19 6"/><path d="M12 6h7v7"/></svg></button>
+</div>
+
+<div id="help"><div class="hbox">
+  <h2>快捷键</h2>
+  <table>
+    <tr><td>1 / 2</td><td>笔 / 荧光笔（再点荧光笔切三档粗细）</td></tr>
+    <tr><td>3 / 4</td><td>整笔橡皮 / 局部橡皮（切断笔迹）</td></tr>
+    <tr><td>V / L</td><td>选择 / 套索</td></tr>
+    <tr><td>T / N / S / B / I</td><td>文本 / 便签 / 形状 / 表格 / 图片对象</td></tr>
+    <tr><td>Shift + 拖笔</td><td>拉直成直线，角度吸附 15°</td></tr>
+    <tr><td>Shift + 点 / 拉框</td><td>加选</td></tr>
+    <tr><td>选中后拖动手柄</td><td>缩放（Shift 等比）／顶部圆点旋转</td></tr>
+    <tr><td>Ctrl + D / Delete</td><td>复制 / 删除选中</td></tr>
+    <tr><td>右键</td><td>对象菜单：编辑、复制、置顶、置底、删除</td></tr>
+    <tr><td>Ctrl + Z / Ctrl + Y</td><td>撤销 / 重做</td></tr>
+    <tr><td>Ctrl + 滚轮</td><td>以光标为中心缩放</td></tr>
+    <tr><td>空格 + 拖动 / 中键拖动</td><td>平移画布</td></tr>
+    <tr><td>[ / ]</td><td>笔宽 减 / 加</td></tr>
+    <tr><td>Ctrl + S</td><td>导出当前页 PNG</td></tr>
+    <tr><td>0</td><td>视图复位 100%</td></tr>
+  </table>
+  <p style="color:#707070;font-size:12px;margin:12px 0 0">数据全部存在本机浏览器 IndexedDB 里，不联网、不上传。清浏览器数据会一起清掉，重要内容请用「备份 JSON」。</p>
+  <div class="x"><button id="bHelpClose">知道了</button></div>
+</div></div>
+
+<div id="legacy">
+  <button id="tHl"></button>
+  <button id="tEr2"></button>
+  <button id="tLasso"></button>
+  <button id="tShape"></button>
+  <button id="tTable"></button>
+  <button id="tImg"></button>
+  <button id="bPan"></button>
+  <button id="bReplay"></button>
+  <button id="bBg"></button>
+  <button id="bImg"></button>
+  <button id="bSave"></button>
+  <button id="bJson"></button>
+  <button id="bHelp"></button>
+  <button id="bNew"></button>
+  <span id="colors"></span>
+  <input id="size" type="range" min="1" max="26" step="0.5" value="3">
+  <b id="wLbl">3</b>
+  <b id="hlBadge"></b>
+</div>
+
+<input type="file" id="fileImg" accept="image/*" hidden>
+<input type="file" id="fileJson" accept="application/json,.json" hidden>

@@ -7,7 +7,7 @@ import { spawn } from 'node:child_process';
 
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 const PORT = 9224;
-const URL_ = 'https://127.0.0.1:8443/';
+const URL_ = process.env.WB_URL || 'https://127.0.0.1:8443/#new';
 const exprFile = process.argv[2];
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'wb-probe-'));
 
@@ -104,3 +104,4 @@ if (cdp.logs.length) console.log('CONSOLE\n' + cdp.logs.join('\n'));
 edge.kill();
 await sleep(300);
 process.exit(0);
+
