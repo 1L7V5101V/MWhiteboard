@@ -250,7 +250,29 @@ IndexedDB 自动保存（500ms 防抖）。
 | 采样 | `addPoint` + 合并事件展开 | `inkFeedPen` / `inkFeedMouse` |
 | 抽稀/拟合 | `new g.j(8e-4/w)` 垂距过滤；鼠标走均匀三次 B 样条 + `new p.k(0.1,0.2,false)` 细分 | `perpDist2` + `SPLINE_B` + `flattenRec` |
 | 压力→笔宽 | `(0,c.u)(e,r.Jd,r.tV)` 归一化，笔宽倍率 `P(p)=1.5p+0.25` | `inkMul(p)` |
+| 中心线 | 采样点直接连 | `smoothPts`：去重合点 → 非均匀 Catmull-Rom 重采样 |
 | 上屏 | 每点画圆 + 相邻圆外公切线四边形，nonzero 并集 | `inkDot` / `inkSeg` + `fill(path,'nonzero')` |
+
+### 三条让线条"不像原版"的根因（都已修）
+
+1. **外轮廓的折棱**。采样点直接拼四边形条带，手速快时两点相隔十几像素，外轮廓就是多边形。
+   现在先用非均匀 Catmull-Rom（切线按相邻弦长加权，`k=d1/(d0+d1)`）把中心线按弧长重采样
+   （步长 `min(2.6, .85r)`，最多 24 段/段），再沿平滑后的点拼四边形。均匀参数的旧版本会把
+   长段压平、短段鼓包——笔速变化时正是这个情形。
+2. **笔画中间的"肋"**。相邻四边形共边，两次抗锯齿覆盖率加起来不到 1，放大看是一条条亮缝。
+   `inkSeg` 里把每段沿走向各延长 `0.25r`（≤0.9px），让邻居互相盖住，缝就没了。
+3. **笔宽的台阶**。硬件压力有量化抖动，直接映射成半径会一格一格跳。`smoothPts` 输出上做
+   两遍 5 抽 binomial `[1 4 6 4 1]/16` 低通（窗口约 10px，不吃起收笔尖锋），荧光笔跳过。
+
+另外笔停下时同一个像素会喂进十几个点，零长度段让切线退化成 0、外轮廓出现硬折角，
+所以重采样前先丢掉相邻距离 <0.28 的重复点（末点始终保留）。
+
+### 拖动为什么不再有延迟
+
+旧实现在每次 `pointermove` 里 `restoreGeom` 深拷贝所有采样点 + 重算几何 + 整场景重建。
+现在拖动/缩放/旋转只改一个 `live` 变换对象（`drawItem` 外面套一层 `liveOf`，绘制时平移/绕点
+缩放/绕心旋转），数据一个字都不动；抬手时 `commitTransform()` 一次性写回并 `save()`。
+实测 8 条 400 点笔迹全选拖动：每次 pointermove 处理 0.015ms（p95 0.1ms）。
 
 关键常量（全部照抄原版，未调参）：
 
@@ -265,9 +287,10 @@ HL_ALPHA = 0.3
 
 ### 和原版还剩的差异
 
-1. **墨迹预测是「外推」而不是原版那套**。原版 `predictionContext` 用历史点拟合再外推一帧；
-   本地优先用 `PointerEvent.getPredictedEvents()`（浏览器自带的预测点），拿不到就按速度
-   线性外推 `k*0.55`，画在湿墨之后、alpha 0.4，抬笔即清。
+1. **墨迹预测**。优先用 `PointerEvent.getPredictedEvents()`（浏览器给的硬件预测点，原版
+   `predictionContext` 同源），并过滤掉往回指、或离笔尖 >34px 的异常点——硬件预测偶尔会给
+   一个反向点，画出来就是笔尾那根莫名其妙的灰钩子。拿不到预测时退回三点拟合圆的圆弧外推
+   （直线段自动退化），长度 `min(1.15×本次采样位移, 26px)`，alpha 0.4 逐段收细，抬笔即清。
 2. **笔迹美化只做「拉直」**。原版 `InkBeautifier` 还会识别圆/矩形等几何图形并替换成规整图形，
    本地只做：点数≥8、弦长≥30、最大垂距比≤5% → 收成两点直线（`beautify`）。
    觉得碍事就把 `BEAUTIFY` 设成 `false`。
@@ -315,10 +338,16 @@ Shift 收笔 30 点抖动 → 2 点、dy=0
 输入管线      3000 事件单笔 180ms（0.06ms/事件）
 路径构建      2976 点 1.82ms      ← 去掉 closePath 前是 112ms
 路径填充      0.05ms/帧
+平滑后点数    9 点弧 → 100 点（最大转角 2.6°）；13 点闭合圈 → 173 点（4.9°）
+拖动处理      8 条 × 400 点全选：0.015ms/次 pointermove（p95 0.1ms，max 0.5ms）
+帧间隔        12 条 × 200 点：avg 10ms / p95 10.2ms；30 条 × 800 点：avg 12.4ms
 ```
 
 > 坑：`Path2D.closePath()` 在 Chromium 单次约 30µs，几千个四边形就能把一次路径构建
 > 从 2ms 拖到 100ms+。`fill()` 本来就会自动闭合子路径，别调它。
+>
+> 坑：`benchScene()` 量到的 0.02ms 是假数——canvas2d 命令只是排队，真正光栅化在合成时
+> 发生。要看帧率只能用 rAF 间隔量。
 
 ### 回归测试
 
@@ -327,7 +356,17 @@ cd wb-local
 node _re\probe.mjs _re\obj-test.js              # 对象层 21 项，返回 JSON 结果
 node _re\probe.mjs _re\obj-test.js out.png      # 同上 + 出图
 node _re\ink-test.mjs                           # 旧的纯笔迹测试（items 化之前的版本）
+
+# 落盘回归：同一个 profile 跑两次，第二次不建新板、直接读回上一轮画的内容
+$env:WB_PROFILE="$env:TEMP\wb-persist"
+$env:WB_URL='https://127.0.0.1:8443/#new'
+node _re\probe.mjs _re\persist-write.js
+$env:WB_URL='https://127.0.0.1:8443/'
+node _re\probe.mjs _re\persist-read.js          # items=1 / nPts=25
 ```
+
+`obj-test.js` 开头有 `await sleep(800)`：`boot()` 读 IndexedDB 是异步的，不等它落地就画，
+`applyBoard` 会在两步之间换掉 `pages`，表现为「笔迹画了但取不到」的假故障。
 
 无头模式下 rAF 会被节流，**必须**靠 `Page.captureScreenshot` 强制出一帧再读像素，
 否则会读到上一帧，表现为「后面的笔画没画上」。截图前若刚跑过回放，记得先 `__wbDebug.repaint()`

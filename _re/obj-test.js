@@ -5,6 +5,11 @@
   const out = {}, errs = [];
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const pg = () => d.doc.pages[d.doc.active];
+  await sleep(800);          // 等 boot() 的 IndexedDB 读取落地，否则 applyBoard 会中途换掉 pages
+  d.doc.pages[d.doc.active].items.length = 0;
+  d.doc.view = { x: 0, y: 0, s: 1 };
+  d.repaint();
+  await sleep(80);
   const view = d.doc.view;
   const sx = wx => (wx - view.x) * view.s;
   const sy = wy => (wy - view.y) * view.s;

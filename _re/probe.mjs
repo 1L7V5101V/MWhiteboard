@@ -9,7 +9,9 @@ const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
 const PORT = 9224;
 const URL_ = process.env.WB_URL || 'https://127.0.0.1:8443/#new';
 const exprFile = process.argv[2];
-const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'wb-probe-'));
+const profile = process.env.WB_PROFILE
+  ? (fs.mkdirSync(process.env.WB_PROFILE, { recursive: true }), process.env.WB_PROFILE)
+  : fs.mkdtempSync(path.join(os.tmpdir(), 'wb-probe-'));
 
 const edge = spawn(EDGE, [
   `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
