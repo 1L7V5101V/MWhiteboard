@@ -92,24 +92,19 @@
   .rdot{position:absolute;right:6px;top:5px;width:6px;height:6px;border-radius:50%;background:#E8283C}
 
   /* ---------- 笔盘 ---------- */
-  #penTray{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);display:flex;align-items:center;
-    gap:2px;padding:5px 8px;background:#fff;border-radius:12px;z-index:23;opacity:0;pointer-events:none;
-    box-shadow:var(--shadow-lg),inset 0 1px 0 #fff;
-    transition:opacity .14s ease,transform .18s cubic-bezier(.2,.8,.2,1)}
-  #penTray.show{opacity:1;pointer-events:auto;animation:trayIn .18s cubic-bezier(.2,.8,.2,1)}
-  @keyframes trayIn{from{opacity:0;transform:translateX(-50%) translateY(10px) scale(.96)}
-    to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
-  .pen{position:relative;width:42px;height:46px;border-radius:8px;display:grid;place-items:center;
+  #penRow{display:flex;align-items:center;gap:1px;margin-right:2px}
+  #penRow:empty{display:none}
+  .pen{position:relative;width:32px;height:34px;border-radius:6px;display:grid;place-items:center;
     transition:background .13s,transform .13s cubic-bezier(.2,.8,.2,1),box-shadow .13s}
   .pen:hover{background:var(--hover);transform:translateY(-2px)}
   .pen:active{transform:translateY(0) scale(.93)}
   .pen.on{background:#EDEDED;box-shadow:inset 0 0 0 1px rgba(0,0,0,.05)}
-  .pen.on::after{content:'';position:absolute;left:12px;right:12px;bottom:4px;height:2.5px;border-radius:2px;
+  .pen.on::after{content:'';position:absolute;left:9px;right:9px;bottom:2px;height:2.5px;border-radius:2px;
     background:var(--pc,#242424);opacity:.85;animation:barIn .18s ease}
   @keyframes barIn{from{opacity:0;transform:scaleX(.35)}to{opacity:.85;transform:scaleX(1)}}
   .pen svg{transition:transform .16s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 1px 1px rgba(0,0,0,.13))}
   .pen:hover svg{transform:rotate(-4deg) scale(1.05)}
-  .pen.ic{width:40px;height:40px;border-radius:8px;color:#242424}
+  .pen.ic{width:28px;height:34px;border-radius:6px;color:#242424}
   .pen.ic svg{filter:none}
   .pen.ic.on{background:#E9E9E9;color:#111}
   .pen.ic.on::after{display:none}
@@ -281,9 +276,13 @@
       <button class="tb" id="bRedo" title="重做 (Ctrl+Y)" style="display:none"></button>
     </div>
     <div id="toolbar" class="card-ui">
+      <div id="penRow"></div>
+      <div class="vsep"></div>
+      <button class="tb" id="tHl" title="荧光笔 (2)"></button>
+      <button class="tb" id="tEr" title="橡皮 (3)：再点切换局部 / 整笔"></button>
+      <button class="tb" id="tLasso" title="套索 (L)"></button>
+      <div class="vsep"></div>
       <button class="tb" id="tSel" title="选择 (V)"></button>
-      <button class="tb" id="tEr" title="橡皮 (3)"></button>
-      <button class="tb" id="tPen" title="笔 (1)"></button>
       <button class="tb" id="tNote" title="便签 (N)"></button>
       <button class="tb" id="tHeart" title="表情"></button>
       <button class="tb" id="tText" title="文本 (T)"></button>
@@ -293,7 +292,6 @@
     </div>
   </div>
 
-  <div id="penTray"></div>
 
   <div id="zoomDock">
     <div id="zoomCtl" class="card-ui">
@@ -358,9 +356,7 @@
 </div></div>
 
 <div id="legacy">
-  <button id="tHl"></button>
   <button id="tEr2"></button>
-  <button id="tLasso"></button>
   <button id="tImg"></button>
   <button id="bPan"></button>
   <button id="bReplay"></button>
@@ -2034,7 +2030,7 @@
 
   // ---------- 工具/UI ----------
   var toolBtns = {
-    pen: 'tPen', hl: 'tHl', ers: 'tEr', erp: 'tEr2',
+    hl: 'tHl', ers: 'tEr', erp: 'tEr2',
     sel: 'tSel', lasso: 'tLasso', text: 'tText', note: 'tNote',
     shape: 'tShape', table: 'tTable', img: 'tImg', pan: 'bPan'
   };
@@ -2042,7 +2038,7 @@
     if (t !== 'sel' && t !== 'lasso') { sel = []; marquee = null; lasso = null; }
     tool = t;
     Object.keys(toolBtns).forEach(function (k) {
-      $(toolBtns[k]).classList.toggle('on', k === t);
+      var el = $(toolBtns[k]); if (el) el.classList.toggle('on', k === t);
     });
     cv.className = t === 'pan' ? 'pan' : t === 'sel' ? 'sel' : t === 'text' ? 'txt' : '';
     sceneDirty = true; schedule();
@@ -2289,12 +2285,15 @@
   }
 
   // ---------- 事件绑定 ----------
-  $('tPen').onclick = function () { setTool('pen'); };
   $('tHl').onclick = function () {
     if (tool === 'hl') { hlLevel = (hlLevel + 1) % 3; hint('荧光笔 粗细 ' + (hlLevel + 1) + '/3'); }
     setTool('hl');
   };
-  $('tEr').onclick = function () { setTool('ers'); };
+  $('tEr').onclick = function () {
+    var t = (tool === 'erp') ? 'ers' : 'erp';
+    setTool(t);
+    toast(t === 'erp' ? '局部擦除：只擦掉划过的一段' : '整笔擦除：碰到就整条删除');
+  };
   $('tEr2').onclick = function () { setTool('erp'); };
   $('tSel').onclick = function () { setTool('sel'); };
   $('tLasso').onclick = function () { setTool('lasso'); };
@@ -2524,8 +2523,10 @@ var ICON={"add":"<path d=\"M10 2.5c.28 0 .5.22.5.5v6.5H17a.5.5 0 0 1 0 1h-6.5V17
   // ================= 新版外壳 UI：对齐 Microsoft Whiteboard 外观 =================
   function icon(n, s) { s = s || 20; return '<svg viewBox="0 0 20 20" width="' + s + '" height="' + s + '" fill="currentColor">' + (ICON[n] || '') + '</svg>'; }
   // 笔：白色笔身 + 彩色笔尖 + 彩色笔尾环（对齐原版笔盘里的立体笔形）
-  function penSvg(c) {
-    return '<svg viewBox="0 0 26 46" width="24" height="40">' +
+  function penSvg(c, h) {
+    h = h || 40;
+    var w = Math.round(h * 26 / 46);
+    return '<svg viewBox="0 0 26 46" width="' + w + '" height="' + h + '">' +
       '<path d="M13 6.6 18.9 15v26.6a3.2 3.2 0 0 1-3.2 3.2h-5.4a3.2 3.2 0 0 1-3.2-3.2V15Z" ' +
       'fill="#FEFEFE" stroke="#ABABAB" stroke-width="1.15" stroke-linejoin="round"/>' +
       '<path d="M13 1.8 16.1 7.6H9.9Z" fill="' + c + '"/>' +
@@ -2564,7 +2565,8 @@ var ICON={"add":"<path d=\"M10 2.5c.28 0 .5.22.5.5v6.5H17a.5.5 0 0 1 0 1h-6.5V17
     $('bRedo').innerHTML = icon('arrow_redo');
     $('tSel').innerHTML = icon('cursor');
     $('tEr').innerHTML = icon('eraser') + '<span class="rdot"></span>';
-    $('tPen').innerHTML = icon('pen') + '<span class="cdot"></span>';
+    $('tHl').innerHTML = '<span style="color:#D9B600">' + icon('highlight', 20) + '</span>';
+    $('tLasso').innerHTML = icon('lasso', 20);
     $('tNote').innerHTML = '<span style="color:#FFC83D">' + icon('note_filled', 22) + '</span>';
     $('tHeart').innerHTML = '<span style="color:#E8452C">' + icon('heart_filled', 22) + '</span>';
     $('tText').innerHTML = icon('text_font');
@@ -2792,7 +2794,6 @@ var ICON={"add":"<path d=\"M10 2.5c.28 0 .5.22.5.5v6.5H17a.5.5 0 0 1 0 1h-6.5V17
     });
     var wp = $('widthPop'); if (wp) wp.classList.remove('show');
     openMenuHost = null;
-    if (!keepTray) $('penTray').classList.remove('show');
   }
 
   function ask(msg, ok) {
@@ -2837,7 +2838,7 @@ var ICON={"add":"<path d=\"M10 2.5c.28 0 .5.22.5.5v6.5H17a.5.5 0 0 1 0 1h-6.5V17
     b.dataset.idx = i;
     b.style.setProperty('--pc', c);
     b.title = '笔 ' + (i + 1) + ' · 右键改颜色 / 删除';
-    b.innerHTML = penSvg(c);
+    b.innerHTML = penSvg(c, 30);
     b.onclick = function () { setColorTo(c); setTool('pen'); markPens(); };
     b.oncontextmenu = function (e) { e.preventDefault(); e.stopPropagation(); openPenMenu(i, b); };
     var lp = null;
@@ -2859,30 +2860,13 @@ var ICON={"add":"<path d=\"M10 2.5c.28 0 .5.22.5.5v6.5H17a.5.5 0 0 1 0 1h-6.5V17
     return b;
   }
   function buildPenTray() {
-    var h = $('penTray');
+    var h = $('penRow');
     h.innerHTML = '';
     pens.forEach(function (c, i) { h.appendChild(penBtn(c, i)); });
-    h.appendChild(icBtn(markerSvg('#F2E900'), '荧光笔（再点切换 3 档透明度）', function () {
-      var was = tool === 'hl';
-      setTool('hl');
-      if (was) { hlLevel = (hlLevel + 1) % 3; toast('荧光笔浓度：' + ['淡', '中', '浓'][hlLevel]); }
-      markPens();
-    }, 'hl'));
-    h.appendChild(icBtn(eraserSvg('#F58BA4'), '橡皮：再点切换 局部擦 / 整笔擦', function () {
-      var t = (tool === 'erp') ? 'ers' : 'erp';
-      setTool(t);
-      toast(t === 'erp' ? '局部擦除：只擦掉划过的一段' : '整笔擦除：碰到就整条删除');
-      markPens();
-    }, 'er'));
-    h.appendChild(icBtn(icon('lasso', 22), '套索选择（L）', function () { setTool('lasso'); markPens(); }, 'lasso'));
-    var s1 = document.createElement('div'); s1.className = 'vsep'; h.appendChild(s1);
-    h.appendChild(icBtn(nibSvg(20), '笔宽', function () { toggleWidthPop(this); }));
-    var plus = icBtn(icon('add', 20), '添加一支笔', function () { addPen(); });
+    h.appendChild(icBtn(nibSvg(18), '笔宽', function () { toggleWidthPop(this); }));
+    var plus = icBtn(icon('add', 18), '添加一支笔（最多 ' + PEN_MAX + ' 支）', function () { addPen(); });
     plus.classList.add('add');
     h.appendChild(plus);
-    var s2 = document.createElement('div'); s2.className = 'vsep'; h.appendChild(s2);
-    h.appendChild(icBtn(icon('arrow_undo', 18), '撤销（Ctrl+Z）', function () { $('bUndo').click(); }));
-    h.appendChild(icBtn(icon('arrow_redo', 18), '重做（Ctrl+Y）', function () { $('bRedo').click(); }));
   }
 
   function setPenColor(i, c) {
@@ -3000,30 +2984,24 @@ var ICON={"add":"<path d=\"M10 2.5c.28 0 .5.22.5.5v6.5H17a.5.5 0 0 1 0 1h-6.5V17
     color = c;
     var host = $('colors');
     if (host) Array.prototype.forEach.call(host.children, function (x) { x.classList.remove('on'); });
-    var cd = document.querySelector('#tPen .cdot');
-    if (cd) cd.style.background = c;
   }
   function markPens() {
-    Array.prototype.forEach.call($('penTray').children, function (b) {
+    Array.prototype.forEach.call($('penRow').children, function (b) {
       if (!b.classList || !b.classList.contains('pen')) return;
       var on = false;
       if (b.dataset.idx !== undefined && b.dataset.idx !== '') {
         on = (tool === 'pen' && String(color).toLowerCase() === String(pens[+b.dataset.idx]).toLowerCase());
       }
-      var t = b.dataset.tool;
-      if (t === 'hl') on = (tool === 'hl');
-      if (t === 'er') on = (tool === 'ers' || tool === 'erp');
-      if (t === 'lasso') on = (tool === 'lasso');
       b.classList.toggle('on', on);
     });
   }
 
   // ---------- 工具栏状态同步 ----------
   function syncChrome() {
-    var map = { pen: 'tPen', sel: 'tSel', ers: 'tEr', erp: 'tEr', note: 'tNote', text: 'tText', table: 'tTable' };
-    ['tPen', 'tSel', 'tEr', 'tNote', 'tText', 'tTable'].forEach(function (id) { $(id).classList.toggle('on', map[tool] === id); });
-    var cd = document.querySelector('#tPen .cdot');
-    if (cd) cd.style.background = color;
+    var map = { hl: 'tHl', sel: 'tSel', ers: 'tEr', erp: 'tEr', lasso: 'tLasso', note: 'tNote', text: 'tText', table: 'tTable' };
+    ['tHl', 'tSel', 'tEr', 'tLasso', 'tNote', 'tText', 'tTable'].forEach(function (id) {
+      var el = $(id); if (el) el.classList.toggle('on', map[tool] === id);
+    });
     markPens();
   }
   var _setTool = setTool;
@@ -3114,16 +3092,6 @@ var ICON={"add":"<path d=\"M10 2.5c.28 0 .5.22.5.5v6.5H17a.5.5 0 0 1 0 1h-6.5V17
   }
 
   // ---------- 工具栏 ----------
-  $('tPen').onclick = function () {
-    setTool('pen');
-    var t = $('penTray');
-    if (t.classList.contains('show')) { t.classList.remove('show'); return; }
-    hideMenus();
-    t.classList.add('show');
-    markPens();
-    var r = $('toolbar').getBoundingClientRect();
-    t.style.left = Math.round(r.left + r.width / 2) + 'px';
-  };
   $('tHeart').onclick = function () {
     var h = $('emojiMenu');
     h.innerHTML = '';
@@ -3209,7 +3177,7 @@ var ICON={"add":"<path d=\"M10 2.5c.28 0 .5.22.5.5v6.5H17a.5.5 0 0 1 0 1h-6.5V17
   // ---------- 点击外部关闭浮层 ----------
   document.addEventListener('pointerdown', function (e) {
     var t = e.target;
-    if (t.closest && (t.closest('.menu') || t.closest('#penTray') || t.closest('#widthPop') || t.closest('#toolbar') || t.closest('#topbar') || t.closest('.card') || t.closest('#shapeMenu'))) return;
+    if (t.closest && (t.closest('.menu') || t.closest('#widthPop') || t.closest('#toolbar') || t.closest('#topbar') || t.closest('.card') || t.closest('#shapeMenu'))) return;
     hideMenus();
     $('shapeMenu').classList.remove('show');
   }, true);
