@@ -1,0 +1,30 @@
+# ---- 本机凭据 / 运行态 ----
+cert.pem
+key.pem
+cert.cer
+*.state.json
+server.log
+run-hidden.vbs
+
+# ---- 逆向工作区里的第三方产物（微软打包的 chunk，不入库） ----
+_re/chunks/
+_re/js/
+_re/mods/
+_re/chunkmap.json
+_re/index.html
+_re/chunknames.txt
+_re/mod_*.js
+
+# ---- 从旧白板抢救出来的个人内容（缩略图里是真实作业） ----
+boards/
+boards.json
+gallery.html
+
+# ---- 微软原文件（仅作对照，不随仓库分发） ----
+offline-page.orig.html
+
+# ---- 杂项 ----
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
